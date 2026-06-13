@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — HealthAnalytics IPS</title>
+  {% load static %}
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    
+    :root {
+      --primary: #14b8a6;
+      --primary-dark: #0d9488;
+      --secondary: #8b5cf6;
+      --accent: #f97316;
+      --dark: #1f2937;
+      --light: #f9fafb;
+    }
+    
+    body { 
+      background: linear-gradient(135deg, #f9fafb 0%, #f0f9ff 50%, #f5f3ff 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    /* Animated background circles */
+    .bg-circle {
+      position: fixed;
+      border-radius: 50%;
+      opacity: 0.05;
+      pointer-events: none;
+      animation: float 20s ease-in-out infinite;
+    }
+    
+    .circle-1 {
+      width: 400px;
+      height: 400px;
+      background: var(--primary);
+      top: -100px;
+      left: -100px;
+      animation-delay: 0s;
+    }
+    
+    .circle-2 {
+      width: 300px;
+      height: 300px;
+      background: var(--secondary);
+      bottom: -50px;
+      right: -50px;
+      animation-delay: 2s;
+    }
+    
+    .circle-3 {
+      width: 250px;
+      height: 250px;
+      background: var(--accent);
+      top: 50%;
+      right: 10%;
+      animation-delay: 4s;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(30px); }
+    }
+    
+    .login-container {
+      max-width: 420px;
+      position: relative;
+      z-index: 10;
+    }
+    
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .logo-circle {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 1rem;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 30px rgba(20, 184, 166, 0.2);
+    }
+    
+    .logo-circle i {
+      font-size: 2rem;
+      color: white;
+    }
+    
+    .login-header h3 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 0.5rem 0;
+    }
+    
+    .login-header p {
+      color: #9ca3af;
+      font-size: 0.95rem;
+      margin: 0;
+    }
+    
+    .login-card {
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+      background: white;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    
+    .login-card .card-body {
+      padding: 2.5rem;
+    }
+    
+    .login-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--dark);
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.25rem;
+    }
+    
+    .form-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--dark);
+      margin-bottom: 0.6rem;
+      display: block;
+    }
+    
+    .form-control {
+      border-radius: 10px;
+      border: 1.5px solid #e5e7eb;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      background: #f9fafb;
+    }
+    
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+      background: white;
+    }
+    
+    .input-group-text {
+      background: #f9fafb;
+      border: 1.5px solid #e5e7eb;
+      color: #9ca3af;
+      border-radius: 0 10px 10px 0;
+    }
+    
+    .form-control + .input-group-text {
+      border-left: none;
+    }
+    
+    .input-group .form-control {
+      border-radius: 10px 0 0 10px;
+    }
+    
+    .btn-login {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border: none;
+      color: white;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.85rem 1.5rem;
+      border-radius: 10px;
+      width: 100%;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(20, 184, 166, 0.3);
+    }
+    
+    .btn-login:hover {
+      box-shadow: 0 8px 25px rgba(20, 184, 166, 0.4);
+      transform: translateY(-2px);
+      color: white;
+    }
+    
+    .btn-login:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    
+    .error-alert {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      border-radius: 10px;
+      padding: 0.9rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    .error-alert i {
+      flex-shrink: 0;
+    }
+    
+    .login-footer {
+      text-align: center;
+      color: #9ca3af;
+      font-size: 0.85rem;
+    }
+    
+    .spinner-border-sm {
+      width: 1rem;
+      height: 1rem;
+      border-width: 0.2em;
+    }
+    
+    @media (max-width: 768px) {
+      .login-container {
+        max-width: 100%;
+        margin: 0 1rem;
+      }
+      
+      .login-card .card-body {
+        padding: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Animated background -->
+  <div class="bg-circle circle-1"></div>
+  <div class="bg-circle circle-2"></div>
+  <div class="bg-circle circle-3"></div>
+
+  <div class="login-container">
+    <!-- Header -->
+    <div class="login-header">
+      <div class="logo-circle">
+        <i class="bi bi-heart-pulse-fill"></i>
+      </div>
+      <h3>HealthAnalytics IPS</h3>
+      <p>Plataforma de Analítica Clínica Inteligente</p>
+    </div>
+
+    <!-- Login Card -->
+    <div class="login-card">
+      <div class="card-body">
+        <h5 class="login-title">Iniciar Sesión</h5>
+        
+        <!-- Error Message -->
+        <div id="error-msg" class="error-alert d-none">
+          <i class="bi bi-exclamation-circle-fill"></i>
+          <span id="error-text"></span>
+        </div>
+
+        <!-- Form -->
+        <div class="form-group">
+          <label class="form-label">Usuario</label>
+          <div class="input-group">
+            <input 
+              type="text" 
+              class="form-control" 
+              id="username" 
+              placeholder="Nombre de usuario"
+              onkeydown="if(event.key==='Enter') login()">
+            <span class="input-group-text">
+              <i class="bi bi-person"></i>
+            </span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Contraseña</label>
+          <div class="input-group">
+            <input 
+              type="password" 
+              class="form-control" 
+              id="password" 
+              placeholder="Contraseña"
+              onkeydown="if(event.key==='Enter') login()">
+            <button 
+              class="btn btn-outline-secondary" 
+              type="button"
+              onclick="togglePass()"
+              style="border: 1.5px solid #e5e7eb; background: #f9fafb;">
+              <i class="bi bi-eye" id="eye-icon"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <button class="btn btn-login" onclick="login()" id="btn-login">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
+        </button>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <p class="login-footer">
+      © 2025 HealthAnalytics IPS · Todos los derechos reservados
+    </p>
+  </div>
+
+  <script>
+    async function login() {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const btn = document.getElementById('btn-login');
+      const err = document.getElementById('error-msg');
+      const errText = document.getElementById('error-text');
+      
+      if (!username || !password) {
+        errText.textContent = 'Ingresa usuario y contraseña.';
+        err.classList.remove('d-none');
+        return;
+      }
+      
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Ingresando...';
+      err.classList.add('d-none');
+      
+      try {
+        const res = await fetch('/api/auth/login/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          localStorage.setItem('access', data.access);
+          localStorage.setItem('refresh', data.refresh);
+          localStorage.setItem('username', data.username || username);
+          localStorage.setItem('rol', data.rol || '');
+          window.location.href = '/';
+        } else {
+          errText.textContent = data.detail || 'Credenciales inválidas.';
+          err.classList.remove('d-none');
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Ingresar';
+        }
+      } catch (e) {
+        errText.textContent = 'Error de conexión con el servidor.';
+        err.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Ingresar';
+      }
+    }
+
+    function togglePass() {
+      const inp = document.getElementById('password');
+      const icon = document.getElementById('eye-icon');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      icon.className = inp.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+    }
+  </script>
+</body>
+</html>
