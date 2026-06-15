@@ -1,6 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from apps.authentication.permissions import EsAnalistaOAdministrador
 from rest_framework import status
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
@@ -22,7 +23,7 @@ from .serializers import ModeloMLSerializer, PrediccionSerializer
         value={'algoritmo': 'random_forest'}, request_only=True)],
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
 def entrenar(request):
     algoritmo = request.data.get('algoritmo', 'random_forest')
     try:
@@ -75,7 +76,7 @@ def entrenar(request):
              'required': ['paciente_id']}},
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
 def predecir(request):
     paciente_id = request.data.get('paciente_id')
     if not paciente_id:
@@ -90,9 +91,39 @@ def predecir(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+@extend_schema(tags=['ml'], summary='Estadísticas agregadas de ML')
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
+def estadisticas_ml(request):
+    from django.db.models import Max, Count, Q
+    from .models import PrediccionPaciente
+    total = ModeloML.objects.count()
+    if total == 0:
+        return Response({
+            'total_modelos': 0,
+            'mejor_accuracy': None,
+            'mejor_f1': None,
+            'modelos_activos': 0,
+            'total_predicciones': 0,
+        })
+    metrics = ModeloML.objects.aggregate(
+        mejor_accuracy=Max('accuracy'),
+        mejor_f1=Max('f1_score'),
+        modelos_activos=Count('id', filter=Q(activo=True)),
+    )
+    total_predicciones = PrediccionPaciente.objects.count()
+    return Response({
+        'total_modelos': total,
+        'mejor_accuracy': round(metrics['mejor_accuracy'] * 100, 1) if metrics['mejor_accuracy'] else None,
+        'mejor_f1': round(metrics['mejor_f1'] * 100, 1) if metrics['mejor_f1'] else None,
+        'modelos_activos': metrics['modelos_activos'],
+        'total_predicciones': total_predicciones,
+    })
+
+
 @extend_schema(tags=['ml'], summary='Listar modelos entrenados')
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
 def modelos_lista(request):
     modelos = ModeloML.objects.all()[:10]
     return Response(ModeloMLSerializer(modelos, many=True).data)
@@ -100,7 +131,7 @@ def modelos_lista(request):
 
 @extend_schema(tags=['ml'], summary='Listar predicciones realizadas')
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
 def predicciones_lista(request):
     preds = PrediccionPaciente.objects.all()[:50]
     return Response(PrediccionSerializer(preds, many=True).data)

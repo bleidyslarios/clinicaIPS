@@ -2,90 +2,464 @@
 {% load static %}
 
 {% block title %}Proceso ETL — HealthAnalytics IPS{% endblock %}
-{% block nav_etl %}active text-white{% endblock %}
+{% block nav_etl %}active{% endblock %}
 {% block page_title %}Proceso ETL{% endblock %}
 
 {% block content %}
-<div class="row g-3 mb-4">
-  <!-- Panel de ejecución -->
-  <div class="col-lg-6">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white border-0">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-play-circle me-2 text-primary"></i>Ejecutar ETL</h6>
-      </div>
-      <div class="card-body">
-        <p class="text-muted small">Ejecuta el proceso Extract → Transform → Load sobre el dataset clínico cargado.</p>
-        <button class="btn btn-primary w-100 mb-3" id="btn-run-etl" onclick="ejecutarETL()">
-          <i class="bi bi-lightning-charge-fill me-2"></i>Ejecutar ETL Ahora
-        </button>
-        <div id="etl-progress" class="d-none">
-          <div class="progress mb-2">
-            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
-                 style="width:100%" role="progressbar"></div>
-          </div>
-          <small class="text-muted">Procesando datos clínicos...</small>
+<style>
+  .etl-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .etl-stat {
+    background: white;
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+    overflow: hidden;
+  }
+  .etl-stat::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .etl-stat:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+  .etl-stat--ejec::before { background: linear-gradient(90deg, #10e5cc, #0bb8a4); }
+  .etl-stat--limpios::before { background: linear-gradient(90deg, #10b981, #34d399); }
+  .etl-stat--duplicados::before { background: linear-gradient(90deg, #f97316, #fb923c); }
+  .etl-stat--tiempo::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+  .etl-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+  }
+  .etl-icon--ejec { background: rgba(16,229,204,0.1); color: #10e5cc; }
+  .etl-icon--limpios { background: rgba(16,185,129,0.1); color: #10b981; }
+  .etl-icon--duplicados { background: rgba(249,115,22,0.1); color: #f97316; }
+  .etl-icon--tiempo { background: rgba(139,92,246,0.1); color: #8b5cf6; }
+  .etl-value {
+    font-size: 1.6rem; font-weight: 700; color: #080e1c; line-height: 1;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+  }
+  .etl-label {
+    font-size: 0.75rem; color: #8899aa; text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight: 600; margin-top: 2px;
+  }
+
+  .etl-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .etl-panel {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .etl-panel:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.06); }
+  .etl-panel-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .etl-panel-header i {
+    font-size: 1.1rem;
+  }
+  .etl-panel-header h6 {
+    font-weight: 700; color: #080e1c; font-size: 0.9rem; margin: 0;
+  }
+  .etl-panel-body { padding: 1.25rem 1.5rem; }
+  .etl-panel-desc {
+    font-size: 0.82rem; color: #8899aa; margin-bottom: 1.25rem; line-height: 1.5;
+  }
+
+  .etl-btn {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+  }
+  .etl-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .etl-btn--primary {
+    background: linear-gradient(135deg, #10e5cc, #0bb8a4);
+    color: white;
+    box-shadow: 0 4px 14px rgba(16,229,204,0.3);
+  }
+  .etl-btn--primary:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(16,229,204,0.45);
+    transform: translateY(-1px);
+  }
+  .etl-btn--secondary {
+    background: white;
+    color: #5a6577;
+    border: 1px solid #dde5ef;
+  }
+  .etl-btn--secondary:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #ccd0d8;
+  }
+  .etl-btn--success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 14px rgba(16,185,129,0.3);
+  }
+  .etl-btn--success:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(16,185,129,0.45);
+    transform: translateY(-1px);
+  }
+
+  .etl-progress { margin-top: 1rem; display: none; }
+  .etl-progress.active { display: block; }
+  .etl-progress-bar {
+    height: 4px;
+    border-radius: 4px;
+    background: #e5e7eb;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  .etl-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10e5cc, #0bb8a4);
+    border-radius: 4px;
+    animation: etlPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes etlPulse {
+    0%, 100% { width: 30%; opacity: 1; }
+    50% { width: 80%; opacity: 0.7; }
+  }
+  .etl-progress-text {
+    font-size: 0.78rem; color: #8899aa;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .etl-progress-text .spinner-border { color: #10e5cc; }
+
+  .file-upload-zone {
+    border: 2px dashed #dde5ef;
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    margin-bottom: 1rem;
+    background: #fafbfc;
+  }
+  .file-upload-zone:hover {
+    border-color: #10e5cc;
+    background: rgba(16,229,204,0.03);
+  }
+  .file-upload-zone i {
+    font-size: 2rem;
+    color: #c0c8d4;
+    margin-bottom: 0.5rem;
+    display: block;
+    transition: color 0.25s;
+  }
+  .file-upload-zone:hover i { color: #10e5cc; }
+  .file-upload-zone p {
+    font-size: 0.82rem; color: #8899aa; margin: 0;
+  }
+  .file-upload-zone .file-name {
+    font-size: 0.78rem; color: #10e5cc; font-weight: 600; margin-top: 0.5rem;
+    display: none;
+  }
+  .file-upload-zone.has-file .file-name { display: block; }
+  .file-upload-zone.has-file p { display: none; }
+
+  .etl-result-card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    display: none;
+  }
+  .etl-result-card.active { display: block; }
+  .etl-result-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .etl-result-header h6 {
+    font-weight: 700; color: #080e1c; font-size: 0.9rem; margin: 0;
+  }
+  .etl-result-body { padding: 1.25rem 1.5rem; }
+  .etl-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .etl-metric-item {
+    text-align: center;
+    padding: 1rem;
+    border-radius: 12px;
+    background: #fafbfc;
+    border: 1px solid #f0f0f0;
+  }
+  .etl-metric-item .value {
+    font-size: 1.5rem; font-weight: 700; color: #080e1c;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+  }
+  .etl-metric-item .label {
+    font-size: 0.7rem; color: #8899aa; text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight: 600; margin-top: 4px;
+  }
+  .etl-metric-item--limpios .value { color: #10b981; }
+  .etl-metric-item--duplicados .value { color: #f97316; }
+  .etl-metric-item--tiempo .value { color: #8b5cf6; }
+
+  .etl-log {
+    background: #080e1c;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    max-height: 220px;
+    overflow-y: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: #10e5cc;
+  }
+  .etl-log-label {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 700; color: #8899aa; margin-bottom: 0.5rem;
+  }
+
+  .etl-status-badge {
+    padding: 0.3rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .etl-status--completado { background: rgba(16,185,129,0.1); color: #059669; }
+  .etl-status--error { background: rgba(255,95,109,0.1); color: #ff375f; }
+  .etl-status--proceso { background: rgba(249,115,22,0.1); color: #ea580c; }
+  .etl-status--pendiente { background: rgba(136,153,170,0.15); color: #8899aa; }
+
+  .etl-history-card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+  }
+  .etl-history-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .etl-history-header h6 {
+    font-weight: 700; color: #080e1c; font-size: 0.9rem; margin: 0;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .refresh-btn {
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #5a6577;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .refresh-btn:hover { background: #f8fafc; border-color: #ccd0d8; }
+
+  .etl-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .etl-table thead th {
+    padding: 0.75rem 1rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-weight: 700;
+    color: #8899aa;
+    background: #fafbfc;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: nowrap;
+  }
+  .etl-table tbody tr {
+    transition: all 0.2s;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .etl-table tbody tr:last-child { border-bottom: none; }
+  .etl-table tbody tr:hover { background: rgba(16,229,204,0.03); }
+  .etl-table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: #1a2635;
+    vertical-align: middle;
+  }
+  .etl-table .empty-state {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #8899aa;
+  }
+  .etl-table .empty-state i { font-size: 2rem; color: #dde5ef; margin-bottom: 0.75rem; display: block; }
+
+  @media (max-width: 992px) {
+    .etl-grid { grid-template-columns: repeat(2, 1fr); }
+    .etl-panels { grid-template-columns: 1fr; }
+    .etl-metrics-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 576px) {
+    .etl-grid { grid-template-columns: 1fr; }
+    .etl-metrics-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- Estadísticas -->
+<div class="etl-grid" id="etl-stats-grid">
+  <div class="etl-stat etl-stat--ejec">
+    <div class="etl-icon etl-icon--ejec"><i class="bi bi-play-circle-fill"></i></div>
+    <div>
+      <div class="etl-value" id="stat-total-ejec">0</div>
+      <div class="etl-label">Total Ejecuciones</div>
+    </div>
+  </div>
+  <div class="etl-stat etl-stat--limpios">
+    <div class="etl-icon etl-icon--limpios"><i class="bi bi-database-check"></i></div>
+    <div>
+      <div class="etl-value" id="stat-total-limpios">0</div>
+      <div class="etl-label">Registros Procesados</div>
+    </div>
+  </div>
+  <div class="etl-stat etl-stat--duplicados">
+    <div class="etl-icon etl-icon--duplicados"><i class="bi bi-copy"></i></div>
+    <div>
+      <div class="etl-value" id="stat-total-duplicados">0</div>
+      <div class="etl-label">Duplicados Eliminados</div>
+    </div>
+  </div>
+  <div class="etl-stat etl-stat--tiempo">
+    <div class="etl-icon etl-icon--tiempo"><i class="bi bi-clock-fill"></i></div>
+    <div>
+      <div class="etl-value" id="stat-promedio-tiempo">0s</div>
+      <div class="etl-label">Tiempo Promedio</div>
+    </div>
+  </div>
+</div>
+
+<!-- Paneles principales -->
+<div class="etl-panels">
+  <!-- Ejecutar ETL -->
+  <div class="etl-panel">
+    <div class="etl-panel-header">
+      <i class="bi bi-lightning-charge-fill" style="color:#10e5cc;"></i>
+      <h6>Ejecutar ETL</h6>
+    </div>
+    <div class="etl-panel-body">
+      <p class="etl-panel-desc">Ejecuta el proceso Extract → Transform → Load sobre el dataset clínico cargado.</p>
+      <button class="etl-btn etl-btn--primary" id="btn-run-etl" onclick="ejecutarETL()">
+        <i class="bi bi-lightning-charge-fill"></i>Ejecutar ETL Ahora
+      </button>
+      <button class="etl-btn etl-btn--secondary" id="btn-generar-dataset" onclick="generarDataset()">
+        <i class="bi bi-plus-circle"></i>Generar Dataset (1800 registros)
+      </button>
+      <a href="/api/etl/exportar-csv/" class="etl-btn etl-btn--secondary" id="btn-download-csv" style="text-decoration:none; text-align:center;">
+        <i class="bi bi-download"></i>Descargar Dataset Limpio (CSV)
+      </a>
+      <div class="etl-progress" id="etl-progress">
+        <div class="etl-progress-bar"><div class="etl-progress-bar-fill"></div></div>
+        <div class="etl-progress-text">
+          <div class="spinner-border spinner-border-sm"></div>
+          Procesando datos clínicos...
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Subida de dataset -->
-  <div class="col-lg-6">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white border-0">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-cloud-upload me-2 text-success"></i>Subir Dataset</h6>
+  <!-- Subir dataset -->
+  <div class="etl-panel">
+    <div class="etl-panel-header">
+      <i class="bi bi-cloud-arrow-up-fill" style="color:#10b981;"></i>
+      <h6>Subir Dataset</h6>
+    </div>
+    <div class="etl-panel-body">
+      <p class="etl-panel-desc">Carga un archivo CSV o Excel. El ETL se ejecutará automáticamente.</p>
+      <div class="file-upload-zone" id="upload-zone" onclick="document.getElementById('archivo-dataset').click()">
+        <i class="bi bi-cloud-arrow-up"></i>
+        <p>Arrastra un archivo aquí o haz clic para seleccionar</p>
+        <div class="file-name" id="file-name-display"></div>
+        <input type="file" class="d-none" id="archivo-dataset" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(this)">
       </div>
-      <div class="card-body">
-        <p class="text-muted small">Carga un archivo CSV o Excel. El ETL se ejecutará automáticamente.</p>
-        <div class="mb-3">
-          <input type="file" class="form-control" id="archivo-dataset" accept=".csv,.xlsx,.xls">
-        </div>
-        <button class="btn btn-success w-100" onclick="subirDataset()">
-          <i class="bi bi-upload me-2"></i>Subir y Procesar
-        </button>
-      </div>
+      <button class="etl-btn etl-btn--success" onclick="subirDataset()">
+        <i class="bi bi-upload"></i>Subir y Procesar
+      </button>
     </div>
   </div>
 </div>
 
 <!-- Resultado del ETL -->
-<div class="card border-0 shadow-sm mb-4 d-none" id="etl-resultado">
-  <div class="card-header bg-white border-0">
-    <h6 class="fw-semibold mb-0">Resultado del Proceso</h6>
+<div class="etl-result-card" id="etl-resultado">
+  <div class="etl-result-header">
+    <h6><i class="bi bi-clipboard-check me-2" style="color:#10e5cc;"></i>Resultado del Proceso</h6>
+    <span class="etl-status-badge" id="etl-status-badge"></span>
   </div>
-  <div class="card-body">
-    <div class="row g-3" id="etl-metricas"></div>
-    <hr>
-    <div class="mt-2">
-      <h6 class="small fw-semibold text-muted">LOG DETALLADO</h6>
-      <pre id="etl-log" class="bg-dark text-success p-3 rounded small"
-           style="max-height:250px;overflow-y:auto;font-size:12px"></pre>
-    </div>
+  <div class="etl-result-body">
+    <div class="etl-metrics-grid" id="etl-metricas"></div>
+    <div class="etl-log-label">Log Detallado</div>
+    <pre class="etl-log" id="etl-log"></pre>
   </div>
 </div>
 
-<!-- Historial ETL -->
-<div class="card border-0 shadow-sm">
-  <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">
-    <h6 class="fw-semibold mb-0"><i class="bi bi-clock-history me-2"></i>Historial de Ejecuciones</h6>
-    <button class="btn btn-sm btn-outline-secondary" onclick="cargarHistorial()">
-      <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+<!-- Historial -->
+<div class="etl-history-card">
+  <div class="etl-history-header">
+    <h6><i class="bi bi-clock-history"></i>Historial de Ejecuciones</h6>
+    <button class="refresh-btn" onclick="cargarHistorial()">
+      <i class="bi bi-arrow-clockwise"></i>Actualizar
     </button>
   </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Fecha</th><th>Usuario</th><th>Entrada</th>
-            <th>Limpios</th><th>Duplicados</th><th>Tiempo</th><th>Estado</th>
-          </tr>
-        </thead>
-        <tbody id="historial-tbody">
-          <tr><td colspan="7" class="text-center text-muted py-4">Cargando historial...</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div style="overflow-x:auto;">
+    <table class="etl-table">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Usuario</th><th>Entrada</th>
+          <th>Limpios</th><th>Duplicados</th><th>Tiempo</th><th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="historial-tbody">
+        <tr><td colspan="7">
+          <div class="empty-state">
+            <i class="bi bi-clock-history"></i>
+            Cargando historial...
+          </div>
+        </td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 {% endblock %}

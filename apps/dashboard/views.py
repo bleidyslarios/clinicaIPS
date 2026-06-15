@@ -1,11 +1,20 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 from apps.analytics.services import obtener_kpis, segmentacion_por_edad
 from apps.analytics.services import distribucion_imc, segmentacion_por_diagnostico
+from apps.analytics.services import tendencia_consultas_mensual, matriz_calor_edad_riesgo
 from apps.etl.models import HistorialETL, Paciente
 from apps.ml.models import ModeloML
 
+
+@extend_schema(
+    tags=['dashboard'],
+    summary='KPIs del dashboard principal',
+    description='Retorna KPIs agregados, ultimo ETL, modelo activo y datos para todas las graficas del dashboard.',
+    responses={200: {'type': 'object'}},
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def dashboard_kpis(request):
@@ -28,5 +37,7 @@ def dashboard_kpis(request):
             'segmentacion_edad': segmentacion_por_edad(),
             'distribucion_imc': distribucion_imc(),
             'top_diagnosticos': segmentacion_por_diagnostico(),
+            'tendencia_consultas': tendencia_consultas_mensual(),
+            'heatmap_edad_riesgo': matriz_calor_edad_riesgo(),
         }
     })

@@ -8,10 +8,7 @@ function getEl(id) {
 }
 
 function safeSetHTML(el, html) {
-  if (!el) {
-    console.warn('Elemento no encontrado para setear HTML');
-    return false;
-  }
+  if (!el) return false;
   el.innerHTML = html;
   return true;
 }
@@ -21,19 +18,12 @@ async function entrenarModelo() {
   const btn = getEl('btn-entrenar');
   const progress = getEl('train-progress');
 
-  if (!selectAlgoritmo || !btn || !progress) {
-    console.warn('Faltan elementos del DOM para entrenar:', {
-      selectAlgoritmo: !!selectAlgoritmo,
-      btn: !!btn,
-      progress: !!progress
-    });
-    return;
-  }
+  if (!selectAlgoritmo || !btn || !progress) return;
 
   const algoritmo = selectAlgoritmo.value;
 
   btn.disabled = true;
-  progress.classList.remove('d-none');
+  progress.classList.add('active');
 
   try {
     const res = await authFetch('/api/ml/entrenar/', {
@@ -45,20 +35,15 @@ async function entrenarModelo() {
     const data = await res.json().catch(() => ({}));
 
     if (res.ok) {
-      // Backend actual devuelve: { status, metricas, matrix, modelo }
-      // Mantener compatibilidad si en algún punto llega envuelto en { result: ... }
       const result = data.result || data || {};
-
       const metrics = result.metricas || result.metrics || {};
       const matrix = result.matrix || null;
-
 
       const unifiedMetricas = {
         accuracy: metrics.accuracy ?? 0,
         precision: metrics.precision ?? 0,
         recall: metrics.recall ?? 0,
         f1_score: metrics.f1_score ?? 0,
-        // mostrarMetricas puede construir la confusion a partir de matrix unificado
         confusion_matrix: metrics.confusion_matrix ?? null,
         clases: metrics.clases ?? null,
         matrix: matrix
@@ -73,20 +58,13 @@ async function entrenarModelo() {
     alert('Error de conexión: ' + (e?.message || String(e)));
   } finally {
     btn.disabled = false;
-    progress.classList.add('d-none');
+    progress.classList.remove('active');
   }
 }
 
 function mostrarMetricas(metricas, modelo, matrix) {
   const panel = getEl('metricas-panel');
-  if (!panel) {
-    console.warn('Elemento #metricas-panel no existe en el DOM');
-    return;
-  }
-  if (!metricas || !modelo) {
-    console.warn('Datos incompletos para mostrar métricas', { metricas, modelo });
-    return;
-  }
+  if (!panel || !metricas || !modelo) return;
 
   const acc = ((metricas?.accuracy ?? 0) * 100).toFixed(1);
   const prec = ((metricas?.precision ?? 0) * 100).toFixed(1);
@@ -94,66 +72,39 @@ function mostrarMetricas(metricas, modelo, matrix) {
   const f1 = ((metricas?.f1_score ?? 0) * 100).toFixed(1);
 
   safeSetHTML(panel, `
-    <div class="row g-3">
-      <div class="col-6">
-        <div class="border rounded p-3 text-center">
-          <div class="text-muted small">Accuracy</div>
-          <div class="fw-bold fs-3 text-primary">${acc}%</div>
-          <div class="progress mt-2" style="height:6px">
-            <div class="progress-bar bg-primary" style="width:${acc}%"></div>
-          </div>
-        </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+      <div class="ml-metric-card">
+        <div class="label">Accuracy</div>
+        <div class="value" style="color:#10e5cc;">${acc}%</div>
+        <div class="bar"><div class="bar-fill" style="width:${acc}%; background:linear-gradient(90deg,#10e5cc,#0bb8a4);"></div></div>
       </div>
-      <div class="col-6">
-        <div class="border rounded p-3 text-center">
-          <div class="text-muted small">Precision</div>
-          <div class="fw-bold fs-3 text-success">${prec}%</div>
-          <div class="progress mt-2" style="height:6px">
-            <div class="progress-bar bg-success" style="width:${prec}%"></div>
-          </div>
-        </div>
+      <div class="ml-metric-card">
+        <div class="label">Precision</div>
+        <div class="value" style="color:#10b981;">${prec}%</div>
+        <div class="bar"><div class="bar-fill" style="width:${prec}%; background:linear-gradient(90deg,#10b981,#34d399);"></div></div>
       </div>
-      <div class="col-6">
-        <div class="border rounded p-3 text-center">
-          <div class="text-muted small">Recall</div>
-          <div class="fw-bold fs-3 text-warning">${rec}%</div>
-          <div class="progress mt-2" style="height:6px">
-            <div class="progress-bar bg-warning" style="width:${rec}%"></div>
-          </div>
-        </div>
+      <div class="ml-metric-card">
+        <div class="label">Recall</div>
+        <div class="value" style="color:#f97316;">${rec}%</div>
+        <div class="bar"><div class="bar-fill" style="width:${rec}%; background:linear-gradient(90deg,#f97316,#fb923c);"></div></div>
       </div>
-      <div class="col-6">
-        <div class="border rounded p-3 text-center">
-          <div class="text-muted small">F1-Score</div>
-          <div class="fw-bold fs-3 text-info">${f1}%</div>
-          <div class="progress mt-2" style="height:6px">
-            <div class="progress-bar bg-info" style="width:${f1}%"></div>
-          </div>
-        </div>
+      <div class="ml-metric-card">
+        <div class="label">F1-Score</div>
+        <div class="value" style="color:#8b5cf6;">${f1}%</div>
+        <div class="bar"><div class="bar-fill" style="width:${f1}%; background:linear-gradient(90deg,#8b5cf6,#a78bfa);"></div></div>
       </div>
     </div>
-    <div class="mt-3 text-center">
-      <small class="text-muted">Modelo: <strong>${modelo.nombre}</strong></small>
+    <div class="ml-metric-card" style="text-align:center; padding:0.75rem;">
+      <div class="model-name">Modelo: <strong style="color:#080e1c;">${modelo.nombre}</strong></div>
     </div>
   `);
 
-  // Mostrar sección de confusion matrix
   const confusionSection = getEl('confusion-section');
-  if (confusionSection) {
-    confusionSection.style.removeProperty('display');
-  } else {
-    console.warn('Elemento #confusion-section no existe en el DOM');
-  }
+  if (confusionSection) confusionSection.style.removeProperty('display');
 
-  // Gráfica barras métricas
   const chartMetricas = getEl('chart-metricas');
-  if (!chartMetricas) {
-    console.warn('Elemento #chart-metricas no existe en el DOM');
-  } else {
-    if (metricasChart) {
-      metricasChart.destroy();
-      metricasChart = null;
-    }
+  if (chartMetricas) {
+    if (metricasChart) { metricasChart.destroy(); metricasChart = null; }
 
     metricasChart = new Chart(chartMetricas, {
       type: 'bar',
@@ -162,24 +113,33 @@ function mostrarMetricas(metricas, modelo, matrix) {
         datasets: [{
           label: 'Valor (%)',
           data: [acc, prec, rec, f1],
-          backgroundColor: ['#0d6efd88', '#19875488', '#ffc10788', '#0dcaf088'],
-          borderColor: ['#0d6efd', '#198754', '#ffc107', '#0dcaf0'],
+          backgroundColor: ['rgba(16,229,204,0.6)', 'rgba(16,185,129,0.6)', 'rgba(249,115,22,0.6)', 'rgba(139,92,246,0.6)'],
+          borderColor: ['#10e5cc', '#10b981', '#f97316', '#8b5cf6'],
           borderWidth: 2,
-          borderRadius: 6
+          borderRadius: 8
         }]
       },
       options: {
         responsive: true,
         plugins: { legend: { display: false } },
-        scales: { y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } } }
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { callback: v => v + '%', color: '#8899aa', font: { size: 11 } },
+            grid: { color: '#f0f0f0' }
+          },
+          x: {
+            ticks: { color: '#8899aa', font: { size: 11 } },
+            grid: { display: false }
+          }
+        }
       }
     });
   }
 
-  // Si el backend unifica en matrix (dict), lo transformamos a cm+clases para reusar renderMatrizConfusion.
   if (matrix && typeof matrix === 'object' && !metricas.confusion_matrix) {
     const clases = Object.keys(matrix);
-    // cm por filas en el orden de claves
     const cm = clases.map(k => matrix[k]);
     renderMatrizConfusion(cm, clases);
   } else {
@@ -192,51 +152,41 @@ function renderMatrizConfusion(cm, clases) {
   if (!cm || !clases) return;
 
   const canvas = getEl('chart-confusion');
-  if (!canvas || !canvas.parentElement) {
-    console.warn('No existe el contenedor de #chart-confusion en el DOM');
-    return;
-  }
+  if (!canvas || !canvas.parentElement) return;
 
-  if (confusionChart) {
-    confusionChart.destroy();
-    confusionChart = null;
-  }
+  if (confusionChart) { confusionChart.destroy(); confusionChart = null; }
 
-  // Tabla HTML simplificada
-  let html = '<table class="table table-bordered table-sm text-center small">';
-  html += '<thead class="table-dark"><tr><th>Real \\ Pred</th>';
-  clases.forEach(c => (html += `<th>${c}</th>`));
+  let html = '<table class="ml-table" style="font-size:0.82rem;">';
+  html += '<thead><tr><th style="background:#080e1c; color:#fff; font-size:0.7rem;">Real \\ Pred</th>';
+  clases.forEach(c => (html += `<th style="background:#080e1c; color:#fff; font-size:0.7rem;">${c}</th>`));
   html += '</tr></thead><tbody>';
 
   cm.forEach((row, i) => {
-    html += `<tr><th class="table-secondary">${clases[i]}</th>`;
+    html += `<tr><td style="background:#162136; color:#fff; font-weight:700; font-size:0.78rem;">${clases[i]}</td>`;
     row.forEach((v, j) => {
-      const bg = i === j ? 'bg-success bg-opacity-25' : (v > 0 ? 'bg-danger bg-opacity-10' : '');
-      html += `<td class="${bg} fw-semibold">${v}</td>`;
+      const isDiag = i === j;
+      const bg = isDiag ? 'rgba(16,229,204,0.15)' : (v > 0 ? 'rgba(255,95,109,0.08)' : '');
+      const color = isDiag ? '#0bb8a4' : (v > 0 ? '#ff375f' : '#8899aa');
+      html += `<td style="background:${bg}; color:${color}; font-weight:${isDiag || v > 0 ? '700' : '400'}; text-align:center; font-family:'Space Grotesk',monospace;">${v}</td>`;
     });
     html += '</tr>';
   });
 
   html += '</tbody></table>';
-  canvas.parentElement.innerHTML = '<h6 class="fw-semibold mb-3 small text-muted">MATRIZ DE CONFUSIÓN</h6>' + html;
+  canvas.parentElement.innerHTML = '<h6 style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:#8899aa; margin-bottom:0.75rem;">Matriz de Confusión</h6>' + html;
 }
 
 async function predecirPaciente() {
   const inputId = getEl('input-paciente-id');
   const div = getEl('prediccion-resultado');
 
-  if (!inputId || !div) {
-    console.warn('Faltan elementos del DOM para predecir:', { inputId: !!inputId, div: !!div });
-    return;
-  }
+  if (!inputId || !div) return;
 
   const id = inputId.value;
-  if (!id) {
-    alert('Ingresa el ID del paciente.');
-    return;
-  }
+  if (!id) { alert('Ingresa el ID del paciente.'); return; }
 
-  div.innerHTML = '<div class="spinner-border spinner-border-sm me-2"></div>Prediciendo...';
+  div.classList.add('active');
+  div.innerHTML = '<div style="display:flex; align-items:center; gap:0.5rem; color:#8899aa; font-size:0.85rem;"><div class="spinner-border spinner-border-sm" style="color:#10e5cc;"></div>Prediciendo...</div>';
 
   try {
     const res = await authFetch('/api/ml/predecir/', {
@@ -245,58 +195,69 @@ async function predecirPaciente() {
     });
 
     if (!res) return;
-
     const data = await res.json().catch(() => ({}));
 
     if (res.ok) {
-      const colores = { bajo: 'success', medio: 'warning', alto: 'orange', critico: 'danger' };
-      const color = colores[data.riesgo_predicho] || 'secondary';
+      const colorMap = {
+        bajo: { bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)', text: '#059669', bar: '#10b981' },
+        medio: { bg: 'rgba(249,115,22,0.08)', border: 'rgba(249,115,22,0.2)', text: '#ea580c', bar: '#f97316' },
+        alto: { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)', text: '#dc2626', bar: '#ef4444' },
+        critico: { bg: 'rgba(255,95,109,0.1)', border: 'rgba(255,95,109,0.25)', text: '#ff375f', bar: '#ff5f6d' }
+      };
+      const c = colorMap[data.riesgo_predicho] || colorMap.bajo;
       const pct = (data.probabilidad * 100).toFixed(1);
 
       const distHtml = Object.entries(data.distribucion_clases || {})
-        .map(([k, v]) => `
-          <div class="d-flex justify-content-between small">
-            <span>${k}</span>
-            <span class="fw-semibold">${(v * 100).toFixed(1)}%</span>
-          </div>
-          <div class="progress mb-1" style="height:5px">
-            <div class="progress-bar bg-${colores[k] || 'secondary'}" style="width:${(v * 100).toFixed(1)}%"></div>
-          </div>
-        `)
-        .join('');
+        .map(([k, v]) => {
+          const dc = colorMap[k] || colorMap.bajo;
+          return `
+            <div style="margin-bottom:0.5rem;">
+              <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:3px;">
+                <span style="color:#1a2635; text-transform:capitalize;">${k}</span>
+                <span style="font-weight:700; color:#080e1c; font-family:'Space Grotesk',sans-serif;">${(v * 100).toFixed(1)}%</span>
+              </div>
+              <div style="height:4px; border-radius:4px; background:#e5e7eb; overflow:hidden;">
+                <div style="height:100%; width:${(v * 100).toFixed(1)}%; background:${dc.bar}; border-radius:4px; transition:width 0.6s ease;"></div>
+              </div>
+            </div>`;
+        }).join('');
 
       div.innerHTML = `
-        <div class="alert alert-${color === 'orange' ? 'warning' : color} border-0 mt-2">
-          <div class="d-flex align-items-center gap-3">
-            <div class="fs-2">🏥</div>
-            <div class="flex-grow-1">
-              <div class="fw-bold">Riesgo Predicho:
-                <span class="text-${color === 'orange' ? 'warning' : color} text-uppercase">${data.riesgo_predicho}</span>
-              </div>
-              <div class="small">Probabilidad: ${pct}%</div>
-              <div class="progress mt-1" style="height:8px">
-                <div class="progress-bar bg-${color === 'orange' ? 'warning' : color}" style="width:${pct}%"></div>
-              </div>
+        <div style="background:${c.bg}; border:1px solid ${c.border}; border-radius:12px; padding:1.25rem;">
+          <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+            <div style="width:48px; height:48px; border-radius:12px; background:${c.bg}; display:flex; align-items:center; justify-content:center;">
+              <i class="bi bi-heart-pulse-fill" style="font-size:1.4rem; color:${c.text};"></i>
+            </div>
+            <div>
+              <div style="font-size:0.75rem; color:#8899aa; text-transform:uppercase; letter-spacing:0.05em; font-weight:700;">Riesgo Predicho</div>
+              <div style="font-size:1.3rem; font-weight:700; color:${c.text}; text-transform:capitalize; font-family:'Space Grotesk',sans-serif;">${data.riesgo_predicho}</div>
+            </div>
+            <div style="margin-left:auto; text-align:right;">
+              <div style="font-size:1.5rem; font-weight:700; color:#080e1c; font-family:'Space Grotesk',sans-serif;">${pct}%</div>
+              <div style="font-size:0.7rem; color:#8899aa;">Probabilidad</div>
             </div>
           </div>
-          <hr class="my-2">
-          <div class="small fw-semibold mb-1">Distribución por clases:</div>
+          <div style="height:6px; border-radius:6px; background:#e5e7eb; overflow:hidden; margin-bottom:1rem;">
+            <div style="height:100%; width:${pct}%; background:${c.bar}; border-radius:6px; transition:width 0.8s ease;"></div>
+          </div>
+          <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:#8899aa; margin-bottom:0.75rem;">Distribución por Clases</div>
           ${distHtml}
         </div>`;
     } else {
-      div.innerHTML = `<div class="alert alert-danger">${data.error || 'No se pudo predecir'}</div>`;
+      div.innerHTML = `<div style="background:rgba(255,95,109,0.05); border:1px solid rgba(255,95,109,0.15); border-radius:12px; padding:1rem; color:#ff375f; font-size:0.85rem;">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>${data.error || 'No se pudo predecir'}
+      </div>`;
     }
   } catch (e) {
-    div.innerHTML = `<div class="alert alert-danger">Error: ${(e?.message || String(e))}</div>`;
+    div.innerHTML = `<div style="background:rgba(255,95,109,0.05); border:1px solid rgba(255,95,109,0.15); border-radius:12px; padding:1rem; color:#ff375f; font-size:0.85rem;">
+      <i class="bi bi-exclamation-triangle-fill me-1"></i>Error: ${(e?.message || String(e))}
+    </div>`;
   }
 }
 
 async function cargarModelos() {
   const tbody = getEl('modelos-tbody');
-  if (!tbody) {
-    console.warn('Elemento #modelos-tbody no existe en el DOM');
-    return;
-  }
+  if (!tbody) return;
 
   try {
     const res = await authFetch('/api/ml/modelos/');
@@ -305,18 +266,23 @@ async function cargarModelos() {
     const data = await res.json().catch(() => ([]));
 
     if (!Array.isArray(data) || !data.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Sin modelos entrenados</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="6">
+        <div class="empty-state">
+          <i class="bi bi-inbox"></i>
+          Sin modelos entrenados
+        </div>
+      </td></tr>`;
       return;
     }
 
     tbody.innerHTML = data.filter(m => m && typeof m === 'object').map(m => `
       <tr>
-        <td class="fw-semibold small">${m.nombre ?? '—'}</td>
-        <td><span class="badge bg-info text-dark">${String(m.algoritmo ?? '').replace('_', ' ')}</span></td>
-        <td>${m.accuracy != null ? (m.accuracy * 100).toFixed(1) + '%' : '—'}</td>
-        <td>${m.f1_score != null ? (m.f1_score * 100).toFixed(1) + '%' : '—'}</td>
-        <td class="small text-muted">${formatFecha(m.fecha_entrenamiento)}</td>
-        <td>${m.activo ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</td>
+        <td style="font-weight:700; color:#080e1c; font-size:0.82rem;">${m.nombre ?? '—'}</td>
+        <td><span class="ml-algo-badge">${String(m.algoritmo ?? '').replace('_', ' ')}</span></td>
+        <td style="font-family:'Space Grotesk',sans-serif; font-weight:600;">${m.accuracy != null ? (m.accuracy * 100).toFixed(1) + '%' : '—'}</td>
+        <td style="font-family:'Space Grotesk',sans-serif; font-weight:600;">${m.f1_score != null ? (m.f1_score * 100).toFixed(1) + '%' : '—'}</td>
+        <td style="font-size:0.82rem; color:#8899aa;">${formatFecha(m.fecha_entrenamiento)}</td>
+        <td>${m.activo ? '<span class="ml-status-active">Activo</span>' : '<span class="ml-status-inactive">Inactivo</span>'}</td>
       </tr>
     `).join('');
   } catch (e) {
@@ -328,13 +294,10 @@ function formatFecha(f) {
   return f ? new Date(f).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' }) : '—';
 }
 
-// Exportar a window para los onclick del template
 window.entrenarModelo = entrenarModelo;
 window.predecirPaciente = predecirPaciente;
 window.cargarModelos = cargarModelos;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Si el DOM aún no tiene el contenedor, no crashea
   cargarModelos();
 });
-

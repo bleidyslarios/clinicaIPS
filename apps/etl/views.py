@@ -1,10 +1,13 @@
-import os
+import os, csv
 from django.conf import settings
+from django.http import HttpResponse
+from django.core.management import call_command
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from apps.authentication.permissions import EsAnalistaOAdministrador, EsMedicoOAdministrador
 from rest_framework.filters import SearchFilter
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
@@ -23,6 +26,12 @@ class PacienteViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PacienteSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [SearchFilter]
+
+    def get_permissions(self):
+        if self.action in ('list', 'retrieve'):
+            from apps.authentication.permissions import EsMedicoOAdministrador
+            return [IsAuthenticated(), EsMedicoOAdministrador()]
+        return [IsAuthenticated(), EsAnalistaOAdministrador()]
     search_fields = ['nombres', 'apellidos', 'id_paciente']
 
     @extend_schema(
@@ -60,7 +69,7 @@ class PacienteViewSet(viewsets.ReadOnlyModelViewSet):
     responses={200: HistorialETLSerializer},
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
 def ejecutar_etl_view(request):
     filepath = str(settings.BASE_DIR / 'datasets' / 'dataset_clinico.xlsx')
     if not os.path.exists(filepath):
@@ -84,7 +93,7 @@ def ejecutar_etl_view(request):
     responses={200: HistorialETLSerializer},
 )
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
 @parser_classes([MultiPartParser])
 def subir_dataset(request):
     try:
@@ -131,11 +140,76 @@ def subir_dataset(request):
 
 @extend_schema(
     tags=['etl'],
+    summary='Estadísticas agregadas del ETL',
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
+def estadisticas_etl(request):
+    from django.db.models import Sum, Avg, Count
+    stats = HistorialETL.objects.aggregate(
+        total_ejecuciones=Count('id'),
+        total_entrada=Sum('registros_entrada'),
+        total_limpios=Sum('registros_limpios'),
+        total_duplicados=Sum('duplicados_eliminados'),
+        total_nulos=Sum('nulos_tratados'),
+        promedio_tiempo=Avg('tiempo_ejecucion_seg'),
+    )
+    for k, v in stats.items():
+        if v is None:
+            stats[k] = 0
+        elif isinstance(v, float):
+            stats[k] = round(v, 2)
+    return Response(stats)
+
+
+@extend_schema(
+    tags=['etl'],
     summary='Historial de ejecuciones ETL',
     responses={200: HistorialETLSerializer(many=True)},
 )
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
 def historial_etl(request):
     registros = HistorialETL.objects.all()[:20]
     return Response(HistorialETLSerializer(registros, many=True).data)
+
+
+@extend_schema(
+    tags=['etl'],
+    summary='Exportar dataset limpio como CSV',
+    description='Descarga el dataset limpio (tabla Paciente) en formato CSV.',
+)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
+def exportar_dataset_csv(request):
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="dataset_limpio.csv"'
+    response.write('\ufeff')
+    writer = csv.writer(response)
+    campos = ['id_paciente', 'nombres', 'apellidos', 'edad', 'sexo', 'peso', 'altura',
+              'imc', 'clasificacion_imc', 'presion_sistolica', 'presion_diastolica',
+              'frecuencia_cardiaca', 'glucosa', 'colesterol', 'saturacion_oxigeno',
+              'temperatura', 'antecedentes_familiares', 'fumador', 'consumo_alcohol',
+              'actividad_fisica', 'diagnostico_preliminar', 'riesgo_enfermedad',
+              'es_critico', 'fecha_consulta']
+    writer.writerow(campos)
+    for p in Paciente.objects.all().iterator():
+        writer.writerow([getattr(p, c, '') for c in campos])
+    return response
+
+
+@extend_schema(
+    tags=['etl'],
+    summary='Generar dataset clínico simulado',
+    description='Genera un nuevo dataset clínico simulado con 1800 registros e inconsistencias intencionales.',
+    responses={200: {'type': 'object'}},
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
+def generar_dataset_view(request):
+    try:
+        n = request.data.get('registros', 1800)
+        call_command('generar_dataset', f'--registros={n}')
+        return Response({'mensaje': f'Dataset generado con {n} registros'}, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

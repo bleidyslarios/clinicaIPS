@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block title %}Dashboard — HealthAnalytics IPS{% endblock %}
-{% block nav_dashboard %}active text-white{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
 {% block page_title %}Dashboard Clínico{% endblock %}
 
 {% block content %}
@@ -125,7 +125,7 @@
 </div>
 
 <div class="row g-3 mb-4">
-  <div class="col-lg-6">
+  <div class="col-lg-4">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-header bg-white border-0 pb-0">
         <h6 class="fw-semibold mb-0">Clasificación IMC</h6>
@@ -135,13 +135,36 @@
       </div>
     </div>
   </div>
-  <div class="col-lg-6">
+  <div class="col-lg-8">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-header bg-white border-0 pb-0">
         <h6 class="fw-semibold mb-0">Top 10 Diagnósticos</h6>
       </div>
       <div class="card-body">
         <canvas id="chart-diagnosticos" style="max-height:240px"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-0 pb-0">
+        <h6 class="fw-semibold mb-0">Tendencia de Consultas por Mes</h6>
+      </div>
+      <div class="card-body">
+        <canvas id="chart-tendencia" style="max-height:220px"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-white border-0 pb-0">
+        <h6 class="fw-semibold mb-0">Heatmap: Edad vs Riesgo</h6>
+      </div>
+      <div class="card-body" id="heatmap-container">
+        <div class="text-center text-muted py-4 small">Cargando...</div>
       </div>
     </div>
   </div>

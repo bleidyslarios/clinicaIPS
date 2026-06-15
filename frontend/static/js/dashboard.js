@@ -55,6 +55,8 @@ async function cargarDashboard() {
     renderGraficaEdad(data.graficas.segmentacion_edad);
     renderGraficaIMC(data.graficas.distribucion_imc);
     renderGraficaDiagnosticos(data.graficas.top_diagnosticos);
+    renderGraficaTendencia(data.graficas.tendencia_consultas);
+    renderHeatmap(data.graficas.heatmap_edad_riesgo);
 
   } catch(e) {
     console.error('Error cargando dashboard:', e);
@@ -124,6 +126,68 @@ function renderGraficaDiagnosticos(data) {
       scales: { x: { beginAtZero: true, grid: { color: '#f0f0f0' } } }
     }
   });
+}
+
+function renderGraficaTendencia(data) {
+  if (!data?.length) return;
+  new Chart(document.getElementById('chart-tendencia'), {
+    type: 'line',
+    data: {
+      labels: data.map(d => d.mes),
+      datasets: [{
+        label: 'Consultas',
+        data: data.map(d => d.total),
+        borderColor: '#0d6efd',
+        backgroundColor: 'rgba(13, 110, 253, 0.08)',
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#0d6efd',
+        pointRadius: 4,
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: '#f0f0f0' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+const COLORES_HEATMAP = ['#f7fbff', '#c6dbef', '#6baed6', '#2171b5', '#08306b'];
+const ETIQUETAS_RIESGO = { bajo: 'Bajo', medio: 'Medio', alto: 'Alto', critico: 'Crítico' };
+
+function renderHeatmap(data) {
+  const container = document.getElementById('heatmap-container');
+  if (!data || !data.datos?.length) {
+    container.innerHTML = '<div class="text-center text-muted py-4 small">Sin datos</div>';
+    return;
+  }
+
+  const maxVal = Math.max(...data.datos.flat(), 1);
+  const idxColor = v => Math.min(Math.floor((v / maxVal) * COLORES_HEATMAP.length), COLORES_HEATMAP.length - 1);
+
+  let html = '<div style="overflow-x:auto"><table style="width:100%;font-size:11px;border-collapse:collapse">';
+  html += '<tr><td style="padding:4px;font-weight:600;color:#6c757d">Edad \\ Riesgo</td>';
+  data.riesgos.forEach(r => {
+    html += `<td style="padding:4px;text-align:center;font-weight:600;color:#6c757d;font-size:10px">${ETIQUETAS_RIESGO[r] || r}</td>`;
+  });
+  html += '</tr>';
+
+  data.datos.forEach((fila, i) => {
+    html += `<tr><td style="padding:4px;font-weight:500;color:#495057;white-space:nowrap">${data.rangos[i]}</td>`;
+    fila.forEach(val => {
+      const ci = idxColor(val);
+      html += `<td style="padding:6px;text-align:center;background:${COLORES_HEATMAP[ci]};color:${ci > 2 ? '#fff' : '#212529'};font-weight:${val > 0 ? '600' : '400'};border-radius:4px">${val}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</table></div>';
+  container.innerHTML = html;
 }
 
 // Helpers

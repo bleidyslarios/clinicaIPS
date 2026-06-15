@@ -42,8 +42,6 @@ def obtener_estadisticas_descriptivas() -> dict:
 def obtener_kpis() -> dict:
     """KPIs médicos principales."""
     total = Paciente.objects.count()
-    if total == 0:
-        return {'total': 0}
 
     criticos = Paciente.objects.filter(es_critico=True).count()
     hipertensos = Paciente.objects.filter(presion_sistolica__gt=140).count()
@@ -64,13 +62,13 @@ def obtener_kpis() -> dict:
     return {
         'total_pacientes': total,
         'pacientes_criticos': criticos,
-        'pct_criticos': round(criticos / total * 100, 1),
+        'pct_criticos': round(criticos / total * 100, 1) if total > 0 else 0,
         'pacientes_hipertensos': hipertensos,
-        'pct_hipertensos': round(hipertensos / total * 100, 1),
+        'pct_hipertensos': round(hipertensos / total * 100, 1) if total > 0 else 0,
         'pacientes_diabeticos': diabeticos,
-        'pct_diabeticos': round(diabeticos / total * 100, 1),
+        'pct_diabeticos': round(diabeticos / total * 100, 1) if total > 0 else 0,
         'pacientes_fumadores': fumadores,
-        'pct_fumadores': round(fumadores / total * 100, 1),
+        'pct_fumadores': round(fumadores / total * 100, 1) if total > 0 else 0,
         'distribucion_riesgo': riesgo_dict,
         'promedios': {k: round(v, 2) if v else None for k, v in avg.items()},
     }
@@ -106,6 +104,31 @@ def distribucion_imc() -> dict:
           .annotate(total=Count('id'))
           .order_by('-total'))
     return {r['clasificacion_imc']: r['total'] for r in qs if r['clasificacion_imc']}
+
+
+def matriz_calor_edad_riesgo() -> dict:
+    """Heatmap: distribución cruzada de rango etario vs nivel de riesgo."""
+    qs = Paciente.objects.exclude(edad__isnull=True).exclude(riesgo_enfermedad__isnull=True)
+    df = pd.DataFrame(list(qs.values('edad', 'riesgo_enfermedad')))
+    if df.empty:
+        return {'rangos': [], 'riesgos': [], 'datos': []}
+
+    bins = [0, 18, 30, 45, 60, 75, 130]
+    labels = ['0-18', '19-30', '31-45', '46-60', '61-75', '76+']
+    df['rango_edad'] = pd.cut(df['edad'], bins=bins, labels=labels, right=False)
+
+    tabla = pd.crosstab(df['rango_edad'], df['riesgo_enfermedad'])
+    orden_riesgo = ['bajo', 'medio', 'alto', 'critico']
+    for r in orden_riesgo:
+        if r not in tabla.columns:
+            tabla[r] = 0
+    tabla = tabla[orden_riesgo]
+
+    return {
+        'rangos': labels,
+        'riesgos': orden_riesgo,
+        'datos': tabla.fillna(0).astype(int).values.tolist(),
+    }
 
 
 def tendencia_consultas_mensual() -> list:

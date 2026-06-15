@@ -2,126 +2,483 @@
 {% load static %}
 
 {% block title %}Machine Learning — HealthAnalytics IPS{% endblock %}
-{% block nav_ml %}active text-white{% endblock %}
+{% block nav_ml %}active{% endblock %}
 {% block page_title %}Machine Learning — Predicción de Riesgo{% endblock %}
 
 {% block content %}
-<div class="row g-3 mb-4">
-  <!-- Entrenamiento -->
-  <div class="col-lg-5">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-white border-0">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-cpu me-2 text-primary"></i>Entrenar Modelo</h6>
+<style>
+  .ml-panels {
+    display: grid;
+    grid-template-columns: 5fr 7fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .ml-panel {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    transition: all 0.3s;
+  }
+  .ml-panel:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.06); }
+  .ml-panel-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .ml-panel-header i { font-size: 1.1rem; }
+  .ml-panel-header h6 {
+    font-weight: 700; color: #080e1c; font-size: 0.9rem; margin: 0;
+  }
+  .ml-panel-body { padding: 1.25rem 1.5rem; }
+
+  .ml-select {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid #dde5ef;
+    font-size: 0.85rem;
+    padding: 0.6rem 0.85rem;
+    background: #f8fafc;
+    color: #1a2635;
+    transition: all 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238899aa' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+  }
+  .ml-select:focus {
+    border-color: #10e5cc;
+    box-shadow: 0 0 0 3px rgba(16,229,204,0.12);
+    background-color: white;
+    outline: none;
+  }
+
+  .ml-info-box {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    font-size: 0.78rem;
+    color: #5a6577;
+    line-height: 1.6;
+    margin-bottom: 1.25rem;
+  }
+  .ml-info-box i { color: #10e5cc; margin-right: 0.3rem; }
+
+  .ml-btn {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .ml-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .ml-btn--primary {
+    background: linear-gradient(135deg, #10e5cc, #0bb8a4);
+    color: white;
+    box-shadow: 0 4px 14px rgba(16,229,204,0.3);
+  }
+  .ml-btn--primary:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(16,229,204,0.45);
+    transform: translateY(-1px);
+  }
+  .ml-btn--search {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: white;
+    box-shadow: 0 4px 14px rgba(249,115,22,0.3);
+  }
+  .ml-btn--search:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(249,115,22,0.45);
+    transform: translateY(-1px);
+  }
+
+  .ml-progress { margin-top: 1rem; display: none; }
+  .ml-progress.active { display: block; }
+  .ml-progress-bar {
+    height: 4px;
+    border-radius: 4px;
+    background: #e5e7eb;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  .ml-progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10e5cc, #8b5cf6);
+    border-radius: 4px;
+    animation: mlPulse 1.5s ease-in-out infinite;
+  }
+  @keyframes mlPulse {
+    0%, 100% { width: 30%; opacity: 1; }
+    50% { width: 80%; opacity: 0.7; }
+  }
+  .ml-progress-text {
+    font-size: 0.78rem; color: #8899aa;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .ml-progress-text .spinner-border { color: #10e5cc; }
+
+  /* Métricas */
+  .ml-metrics-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    color: #c0c8d4;
+  }
+  .ml-metrics-placeholder i { font-size: 3rem; margin-bottom: 1rem; }
+  .ml-metrics-placeholder span { font-size: 0.85rem; }
+
+  .ml-metric-card {
+    background: #fafbfc;
+    border: 1px solid #f0f0f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+    transition: all 0.3s;
+  }
+  .ml-metric-card:hover { border-color: #e0e0e0; box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+  .ml-metric-card .label {
+    font-size: 0.7rem; color: #8899aa; text-transform: uppercase;
+    letter-spacing: 0.05em; font-weight: 700; margin-bottom: 0.5rem;
+  }
+  .ml-metric-card .value {
+    font-size: 1.8rem; font-weight: 700; line-height: 1;
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+  }
+  .ml-metric-card .bar {
+    height: 4px;
+    border-radius: 4px;
+    background: #e5e7eb;
+    margin-top: 0.75rem;
+    overflow: hidden;
+  }
+  .ml-metric-card .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+  }
+  .ml-metric-card .model-name {
+    font-size: 0.72rem; color: #8899aa; margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .ml-charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .ml-chart-card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    display: none;
+  }
+  .ml-chart-card.active { display: block; }
+  .ml-chart-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .ml-chart-header h6 {
+    font-weight: 700; color: #080e1c; font-size: 0.9rem; margin: 0;
+  }
+  .ml-chart-body { padding: 1.25rem 1.5rem; }
+
+  /* Predicción */
+  .ml-predict-card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .ml-predict-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .ml-predict-header i { font-size: 1.1rem; color: #f97316; }
+  .ml-predict-header h6 {
+    font-weight: 700; color: #080e1c; font-size: 0.9rem; margin: 0;
+  }
+  .ml-predict-body { padding: 1.25rem 1.5rem; }
+  .ml-predict-input-group {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-end;
+  }
+  .ml-predict-field { flex: 1; }
+  .ml-predict-field label {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 700; color: #8899aa; display: block; margin-bottom: 4px;
+  }
+  .ml-predict-field input {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid #dde5ef;
+    font-size: 0.85rem;
+    padding: 0.6rem 0.85rem;
+    background: #f8fafc;
+    color: #1a2635;
+    transition: all 0.2s;
+  }
+  .ml-predict-field input:focus {
+    border-color: #10e5cc;
+    box-shadow: 0 0 0 3px rgba(16,229,204,0.12);
+    background: white;
+    outline: none;
+  }
+  .ml-predict-btn {
+    padding: 0.6rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    color: white;
+    box-shadow: 0 4px 14px rgba(249,115,22,0.3);
+    transition: all 0.25s;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+  }
+  .ml-predict-btn:hover { box-shadow: 0 6px 20px rgba(249,115,22,0.45); transform: translateY(-1px); }
+
+  .ml-predict-result {
+    margin-top: 1.25rem;
+    display: none;
+  }
+  .ml-predict-result.active { display: block; }
+
+  /* Modelos table */
+  .ml-models-card {
+    background: white;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+  }
+  .ml-models-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ml-models-header h6 {
+    font-weight: 700; color: #080e1c; font-size: 0.9rem; margin: 0;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .refresh-btn {
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    border: 1px solid #e5e7eb;
+    background: white;
+    color: #5a6577;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .refresh-btn:hover { background: #f8fafc; border-color: #ccd0d8; }
+
+  .ml-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .ml-table thead th {
+    padding: 0.75rem 1rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    font-weight: 700;
+    color: #8899aa;
+    background: #fafbfc;
+    border-bottom: 1px solid #f0f0f0;
+    white-space: nowrap;
+  }
+  .ml-table tbody tr {
+    transition: all 0.2s;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .ml-table tbody tr:last-child { border-bottom: none; }
+  .ml-table tbody tr:hover { background: rgba(16,229,204,0.03); }
+  .ml-table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: #1a2635;
+    vertical-align: middle;
+  }
+  .ml-table .empty-state {
+    padding: 3rem 2rem;
+    text-align: center;
+    color: #8899aa;
+  }
+  .ml-table .empty-state i { font-size: 2rem; color: #dde5ef; margin-bottom: 0.75rem; display: block; }
+
+  .ml-algo-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(16,229,204,0.1);
+    color: #0bb8a4;
+    text-transform: capitalize;
+  }
+  .ml-status-active {
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(16,185,129,0.1);
+    color: #059669;
+  }
+  .ml-status-inactive {
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    background: rgba(136,153,170,0.12);
+    color: #8899aa;
+  }
+
+  @media (max-width: 992px) {
+    .ml-panels { grid-template-columns: 1fr; }
+    .ml-charts-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<!-- Paneles principales -->
+<div class="ml-panels">
+  <!-- Entrenar modelo -->
+  <div class="ml-panel">
+    <div class="ml-panel-header">
+      <i class="bi bi-cpu-fill" style="color:#10e5cc;"></i>
+      <h6>Entrenar Modelo</h6>
+    </div>
+    <div class="ml-panel-body">
+      <label style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:#8899aa; display:block; margin-bottom:4px;">Algoritmo</label>
+      <select class="ml-select" id="select-algoritmo">
+        <option value="random_forest">Random Forest</option>
+        <option value="logistic_regression">Regresión Logística</option>
+        <option value="decision_tree">Árbol de Decisión</option>
+      </select>
+      <div class="ml-info-box">
+        <i class="bi bi-info-circle"></i>
+        Variables predictoras: IMC, Edad, Glucosa, Colesterol, Presión arterial,
+        Frecuencia cardíaca, Fumador, Consumo alcohol, Antecedentes familiares.
       </div>
-      <div class="card-body">
-        <div class="mb-3">
-          <label class="form-label small fw-semibold">Algoritmo</label>
-          <select class="form-select" id="select-algoritmo">
-            <option value="random_forest">Random Forest</option>
-            <option value="logistic_regression">Regresión Logística</option>
-            <option value="decision_tree">Árbol de Decisión</option>
-          </select>
-        </div>
-        <div class="alert alert-light border small mb-3">
-          <i class="bi bi-info-circle me-1 text-info"></i>
-          Variables predictoras: IMC, Edad, Glucosa, Colesterol, Presión arterial,
-          Frecuencia cardíaca, Fumador, Consumo alcohol, Antecedentes familiares.
-        </div>
-        <button class="btn btn-primary w-100" onclick="entrenarModelo()" id="btn-entrenar">
-          <i class="bi bi-play-fill me-2"></i>Entrenar Modelo
-        </button>
-        <div id="train-progress" class="mt-3 d-none">
-          <div class="progress">
-            <div class="progress-bar progress-bar-striped progress-bar-animated"
-                 style="width:100%"></div>
-          </div>
-          <small class="text-muted">Entrenando modelo, por favor espere...</small>
+      <button class="ml-btn ml-btn--primary" onclick="entrenarModelo()" id="btn-entrenar">
+        <i class="bi bi-play-fill"></i>Entrenar Modelo
+      </button>
+      <div class="ml-progress" id="train-progress">
+        <div class="ml-progress-bar"><div class="ml-progress-bar-fill"></div></div>
+        <div class="ml-progress-text">
+          <div class="spinner-border spinner-border-sm"></div>
+          Entrenando modelo, por favor espere...
         </div>
       </div>
     </div>
   </div>
 
   <!-- Métricas -->
-  <div class="col-lg-7">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-white border-0">
-        <h6 class="fw-semibold mb-0"><i class="bi bi-bar-chart me-2 text-success"></i>Métricas del Modelo</h6>
-      </div>
-      <div class="card-body" id="metricas-panel">
-        <div class="text-center text-muted py-4">
-          <i class="bi bi-cpu fs-1 d-block mb-2 opacity-25"></i>
-          Entrena un modelo para ver sus métricas
-        </div>
+  <div class="ml-panel">
+    <div class="ml-panel-header">
+      <i class="bi bi-bar-chart-fill" style="color:#10b981;"></i>
+      <h6>Métricas del Modelo</h6>
+    </div>
+    <div class="ml-panel-body" id="metricas-panel">
+      <div class="ml-metrics-placeholder">
+        <i class="bi bi-cpu"></i>
+        <span>Entrena un modelo para ver sus métricas</span>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Matriz de confusión -->
-<div class="row g-3 mb-4" id="confusion-section" style="display:none!important">
-  <div class="col-lg-6">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white border-0">
-        <h6 class="fw-semibold mb-0">Matriz de Confusión</h6>
-      </div>
-      <div class="card-body">
-        <canvas id="chart-confusion" style="max-height:280px"></canvas>
-      </div>
+<!-- Gráficas -->
+<div class="ml-charts-grid" id="confusion-section" style="display:none!important">
+  <div class="ml-chart-card active" id="confusion-card">
+    <div class="ml-chart-header">
+      <h6>Matriz de Confusión</h6>
+    </div>
+    <div class="ml-chart-body">
+      <canvas id="chart-confusion" style="max-height:280px"></canvas>
     </div>
   </div>
-  <div class="col-lg-6">
-    <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white border-0">
-        <h6 class="fw-semibold mb-0">Comparativa de Métricas</h6>
-      </div>
-      <div class="card-body">
-        <canvas id="chart-metricas" style="max-height:280px"></canvas>
-      </div>
+  <div class="ml-chart-card active" id="metricas-card">
+    <div class="ml-chart-header">
+      <h6>Comparativa de Métricas</h6>
+    </div>
+    <div class="ml-chart-body">
+      <canvas id="chart-metricas" style="max-height:280px"></canvas>
     </div>
   </div>
 </div>
 
 <!-- Predicción individual -->
-<div class="card border-0 shadow-sm mb-4">
-  <div class="card-header bg-white border-0">
-    <h6 class="fw-semibold mb-0"><i class="bi bi-person-check me-2 text-warning"></i>Predecir Riesgo de Paciente</h6>
+<div class="ml-predict-card">
+  <div class="ml-predict-header">
+    <i class="bi bi-person-check-fill"></i>
+    <h6>Predecir Riesgo de Paciente</h6>
   </div>
-  <div class="card-body">
-    <div class="row g-3 align-items-end">
-      <div class="col-md-5">
-        <label class="form-label small fw-semibold">ID del Paciente</label>
-        <input type="number" class="form-control" id="input-paciente-id" placeholder="Ej: 1001">
+  <div class="ml-predict-body">
+    <div class="ml-predict-input-group">
+      <div class="ml-predict-field">
+        <label>ID del Paciente</label>
+        <input type="number" id="input-paciente-id" placeholder="Ej: 1001">
       </div>
-      <div class="col-md-4">
-        <button class="btn btn-warning w-100" onclick="predecirPaciente()">
-          <i class="bi bi-search me-2"></i>Predecir Riesgo
-        </button>
-      </div>
+      <button class="ml-predict-btn" onclick="predecirPaciente()">
+        <i class="bi bi-search"></i>Predecir Riesgo
+      </button>
     </div>
-    <div id="prediccion-resultado" class="mt-3"></div>
+    <div class="ml-predict-result" id="prediccion-resultado"></div>
   </div>
 </div>
 
-<!-- Lista de modelos entrenados -->
-<div class="card border-0 shadow-sm">
-  <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">
-    <h6 class="fw-semibold mb-0"><i class="bi bi-collection me-2"></i>Modelos Entrenados</h6>
-    <button class="btn btn-sm btn-outline-secondary" onclick="cargarModelos()">
-      <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+<!-- Modelos entrenados -->
+<div class="ml-models-card">
+  <div class="ml-models-header">
+    <h6><i class="bi bi-collection-fill"></i>Modelos Entrenados</h6>
+    <button class="refresh-btn" onclick="cargarModelos()">
+      <i class="bi bi-arrow-clockwise"></i>Actualizar
     </button>
   </div>
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr><th>Nombre</th><th>Algoritmo</th><th>Accuracy</th>
-              <th>F1-Score</th><th>Fecha</th><th>Estado</th></tr>
-        </thead>
-        <tbody id="modelos-tbody">
-          <tr><td colspan="6" class="text-center text-muted py-4">Sin modelos entrenados aún</td></tr>
-        </tbody>
-      </table>
-    </div>
+  <div style="overflow-x:auto;">
+    <table class="ml-table">
+      <thead>
+        <tr>
+          <th>Nombre</th><th>Algoritmo</th><th>Accuracy</th>
+          <th>F1-Score</th><th>Fecha</th><th>Estado</th>
+        </tr>
+      </thead>
+      <tbody id="modelos-tbody">
+        <tr><td colspan="6">
+          <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            Sin modelos entrenados aún
+          </div>
+        </td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 {% endblock %}

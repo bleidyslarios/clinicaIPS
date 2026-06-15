@@ -1,11 +1,13 @@
 """
-Módulo de Reportes - exportación PDF, Excel, CSV
+Modulo de Reportes - exportacion PDF, Excel, CSV
 """
 import io, csv
 from datetime import datetime
 from django.http import HttpResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema
+from apps.authentication.permissions import EsMedicoOAdministrador, EsAnalistaOAdministrador
 from apps.etl.models import Paciente, HistorialETL
 from apps.etl.serializers import PacienteSerializer
 from reportlab.lib.pagesizes import letter
@@ -13,8 +15,14 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib import colors
 
+
+@extend_schema(
+    tags=['reportes'],
+    summary='Exportar pacientes como CSV',
+    description='Descarga el listado completo de pacientes en formato CSV con BOM para Excel.',
+)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsMedicoOAdministrador])
 def exportar_csv(request):
     response = HttpResponse(content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = 'attachment; filename="pacientes.csv"'
@@ -29,8 +37,13 @@ def exportar_csv(request):
         writer.writerow([getattr(p, c, '') for c in campos])
     return response
 
+@extend_schema(
+    tags=['reportes'],
+    summary='Exportar pacientes como Excel',
+    description='Descarga el listado de pacientes en formato .xlsx con colores por nivel de riesgo.',
+)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsMedicoOAdministrador])
 def exportar_excel(request):
     try:
         import openpyxl
@@ -78,16 +91,26 @@ def exportar_excel(request):
     response['Content-Disposition'] = 'attachment; filename="reporte_pacientes.xlsx"'
     return response
 
+@extend_schema(
+    tags=['reportes'],
+    summary='Historial ETL como reporte',
+    description='Retorna las ultimas 50 ejecuciones del proceso ETL en formato JSON.',
+)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
 def historial_etl_reporte(request):
     from rest_framework.response import Response
     from apps.etl.serializers import HistorialETLSerializer
     data = HistorialETLSerializer(HistorialETL.objects.all()[:50], many=True).data
     return Response(data)
 
+@extend_schema(
+    tags=['reportes'],
+    summary='Exportar reporte clinico en PDF',
+    description='Genera un PDF con resumen de KPIs y listado de pacientes criticos (Top 50).',
+)
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, EsMedicoOAdministrador])
 def exportar_pdf(request):
     # Crear buffer en memoria
     buffer = io.BytesIO()

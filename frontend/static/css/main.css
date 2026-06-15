@@ -34,32 +34,104 @@ body {
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  background: var(--dark) !important;
-  box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+  background: linear-gradient(180deg, #080e1c 0%, #0e1829 40%, #162136 100%) !important;
+  box-shadow: 4px 0 30px rgba(8, 14, 28, 0.5);
+  border-right: 1px solid rgba(16, 229, 204, 0.08);
 }
 
 .sidebar .nav-link {
-  border-radius: 10px;
-  padding: 0.75rem 0.95rem;
-  font-size: 0.9rem;
+  border-radius: 12px;
+  padding: 0.7rem 1rem;
+  font-size: 0.85rem;
   font-weight: 500;
-  color: #d1d5db !important;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #8899aa !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  margin-bottom: 0.35rem;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  overflow: hidden;
+}
+
+.sidebar .nav-link i {
+  font-size: 1.05rem;
+  width: 22px;
+  text-align: center;
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.sidebar .nav-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #10e5cc, #0bb8a4);
+  border-radius: 0 4px 4px 0;
+  transform: scaleY(0);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sidebar .nav-link:hover {
-  background: rgba(20, 184, 166, 0.1);
-  color: var(--primary) !important;
-  transform: translateX(4px);
+  background: rgba(16, 229, 204, 0.08);
+  color: #ffffff !important;
+  transform: translateX(3px);
+}
+
+.sidebar .nav-link:hover i {
+  color: #10e5cc;
+  transform: scale(1.15);
 }
 
 .sidebar .nav-link.active {
-  background: var(--primary);
-  color: white !important;
+  background: linear-gradient(135deg, rgba(16, 229, 204, 0.15), rgba(11, 184, 164, 0.08));
+  color: #ffffff !important;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+  box-shadow: 0 0 20px rgba(16, 229, 204, 0.1);
+}
+
+.sidebar .nav-link.active i {
+  color: #10e5cc;
+  filter: drop-shadow(0 0 8px rgba(16, 229, 204, 0.6));
+}
+
+.sidebar .nav-link.active::before {
+  transform: scaleY(1);
+}
+
+/* ─── Sidebar scrollbar ────────────────────────────────── */
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(16, 229, 204, 0.3);
+  border-radius: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 229, 204, 0.5);
+}
+
+/* ─── Sidebar subtle glow effect ───────────────────────── */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(180deg, rgba(16, 229, 204, 0.06) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sidebar > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ─── Cards ───────────────────────────────────────────── */
