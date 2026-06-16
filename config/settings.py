@@ -8,8 +8,13 @@ from datetime import timedelta
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ─── Seguridad ────────────────────────────────────────────────────────────────
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-dev-key-change-in-production'
+)
+
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+
 ALLOWED_HOSTS = [
     '.vercel.app',
     'localhost',
@@ -24,11 +29,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # Third party
+
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
-    # Apps locales
+    'drf_spectacular',
+
     'apps.authentication',
     'apps.etl',
     'apps.analytics',
@@ -68,17 +74,8 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# ─── Base de Datos ─────────────────────────────────────────────────────────────
-DB_ENGINE = os.environ.get('DB_ENGINE', 'django.db.backends.sqlite3')
-if DB_ENGINE == 'django.db.backends.sqlite3':
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / os.environ.get('DB_NAME', 'db.sqlite3'),
-        }
-    }
-else:
-    DATABASES = {
+# ─── Base de Datos (Neon PostgreSQL) ─────────────────────────────────────────
+DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.environ.get('DB_NAME'),
@@ -89,8 +86,16 @@ else:
     }
 }
 
+# Verificación opcional para detectar variables faltantes
+if not all([
+    os.environ.get('DB_NAME'),
+    os.environ.get('DB_USER'),
+    os.environ.get('DB_PASSWORD'),
+    os.environ.get('DB_HOST'),
+]):
+    print("⚠️ Variables de base de datos no configuradas")
 
-# ─── Auth personalizado ────────────────────────────────────────────────────────
+# ─── Auth personalizado ──────────────────────────────────────────────────────
 AUTH_USER_MODEL = 'authentication.Usuario'
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -100,7 +105,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# ─── REST Framework ────────────────────────────────────────────────────────────
+# ─── REST Framework ──────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -110,30 +115,36 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
-# ─── JWT ───────────────────────────────────────────────────────────────────────
+# ─── JWT ─────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.environ.get('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', 60))),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.environ.get('JWT_REFRESH_TOKEN_LIFETIME_DAYS', 7))),
+    'ACCESS_TOKEN_LIFETIME': timedelta(
+        minutes=int(os.environ.get('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', 60))
+    ),
+    'REFRESH_TOKEN_LIFETIME': timedelta(
+        days=int(os.environ.get('JWT_REFRESH_TOKEN_LIFETIME_DAYS', 7))
+    ),
     'ROTATE_REFRESH_TOKENS': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# ─── CORS ──────────────────────────────────────────────────────────────────────
+# ─── CORS ────────────────────────────────────────────────────────────────────
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://127.0.0.1:8000',
 ]
+
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
-# ─── Internacionalización ──────────────────────────────────────────────────────
+# ─── Internacionalización ────────────────────────────────────────────────────
 LANGUAGE_CODE = 'es-co'
 TIME_ZONE = 'America/Bogota'
 USE_I18N = True
 USE_TZ = True
 
-# ─── Archivos estáticos y media ────────────────────────────────────────────────
+# ─── Archivos estáticos y media ──────────────────────────────────────────────
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'frontend' / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
@@ -141,16 +152,12 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-# ─── Datasets ─────────────────────────────────────────────────────────────────
+# ─── Datasets ────────────────────────────────────────────────────────────────
 DATASETS_DIR = BASE_DIR / 'datasets'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ─── Swagger / OpenAPI ─────────────────────────────────────────────────────────
-INSTALLED_APPS += ['drf_spectacular']
-
-REST_FRAMEWORK['DEFAULT_SCHEMA_CLASS'] = 'drf_spectacular.openapi.AutoSchema'
-
+# ─── Swagger / OpenAPI ───────────────────────────────────────────────────────
 SPECTACULAR_SETTINGS = {
     'TITLE': 'HealthAnalytics IPS API',
     'DESCRIPTION': (
@@ -160,13 +167,4 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'COMPONENT_SPLIT_REQUEST': True,
-    'TAGS': [
-        {'name': 'auth',       'description': 'Autenticación JWT'},
-        {'name': 'pacientes',  'description': 'Consulta de pacientes procesados'},
-        {'name': 'etl',        'description': 'Ejecución y monitoreo del proceso ETL'},
-        {'name': 'analytics',  'description': 'KPIs y analítica clínica'},
-        {'name': 'ml',         'description': 'Entrenamiento y predicción Machine Learning'},
-        {'name': 'dashboard',  'description': 'Datos agregados para dashboard'},
-        {'name': 'reportes',   'description': 'Exportación de datos'},
-    ],
 }
