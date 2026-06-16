@@ -262,24 +262,14 @@ def reset_app_view(request):
         paciente_count = Paciente.objects.count()
         Paciente.objects.all().delete()
 
-        # Regenerar dataset y ejecutar ETL
-        n = request.data.get('registros', 1800)
-        call_command('generar_dataset', f'--registros={n}')
-
-        filepath = str(settings.DATASETS_DIR / 'dataset_clinico.xlsx')
-        historial = None
-        if os.path.exists(filepath):
-            historial = ejecutar_etl(filepath, usuario=request.user)
-
         return Response({
-            'mensaje': 'Aplicación reiniciada completamente',
+            'mensaje': 'Aplicación reiniciada completamente. Sube un dataset para empezar.',
             'eliminados': {
                 'predicciones': pred_count,
                 'modelos': modelo_count,
                 'historial_etl': historial_count,
                 'pacientes': paciente_count,
             },
-            'etl': HistorialETLSerializer(historial).data if historial else None,
         }, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
