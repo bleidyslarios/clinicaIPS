@@ -49,7 +49,7 @@ def obtener_kpis() -> dict:
     fumadores = Paciente.objects.filter(fumador=True).count()
 
     riesgos = (Paciente.objects.values('riesgo_enfermedad')
-               .annotate(total=Count('id')).order_by('riesgo_enfermedad'))
+               .annotate(total=Count('id_paciente')).order_by('riesgo_enfermedad'))
     riesgo_dict = {r['riesgo_enfermedad']: r['total'] for r in riesgos}
 
     avg = Paciente.objects.aggregate(
@@ -93,7 +93,7 @@ def segmentacion_por_edad() -> list:
 def segmentacion_por_diagnostico() -> list:
     """Top 10 diagnósticos más frecuentes."""
     qs = (Paciente.objects.values('diagnostico_preliminar')
-          .annotate(total=Count('id'))
+          .annotate(total=Count('id_paciente'))
           .order_by('-total')[:10])
     return list(qs)
 
@@ -101,7 +101,7 @@ def segmentacion_por_diagnostico() -> list:
 def distribucion_imc() -> dict:
     """Distribución por clasificación IMC."""
     qs = (Paciente.objects.values('clasificacion_imc')
-          .annotate(total=Count('id'))
+          .annotate(total=Count('id_paciente'))
           .order_by('-total'))
     return {r['clasificacion_imc']: r['total'] for r in qs if r['clasificacion_imc']}
 
