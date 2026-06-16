@@ -15,12 +15,15 @@ from .models import ModeloML, PrediccionPaciente
 
 FEATURES = ['edad', 'imc', 'glucosa', 'colesterol', 'presion_sistolica',
             'presion_diastolica', 'frecuencia_cardiaca', 'saturacion_oxigeno',
-            'temperatura', 'fumador', 'consumo_alcohol', 'antecedentes_familiares']
+            'temperatura', 'fumador', 'consumo_alcohol', 'antecedentes_familiares',
+            'actividad_fisica']
+
+ACTIVIDAD_MAP = {'sedentario': 0, 'baja': 1, 'media': 2, 'alta': 3}
 
 ALGORITMOS = {
-    'logistic_regression': LogisticRegression(max_iter=500, random_state=42),
-    'decision_tree': DecisionTreeClassifier(max_depth=8, random_state=42),
-    'random_forest': RandomForestClassifier(n_estimators=100, random_state=42),
+    'logistic_regression': LogisticRegression(max_iter=1000, random_state=42, C=1.0),
+    'decision_tree': DecisionTreeClassifier(max_depth=12, min_samples_split=5, random_state=42),
+    'random_forest': RandomForestClassifier(n_estimators=200, max_depth=15, min_samples_split=5, random_state=42),
 }
 
 
@@ -33,6 +36,10 @@ def _preparar_dataset():
     # Booleanos a int
     for col in ['fumador', 'consumo_alcohol', 'antecedentes_familiares']:
         df[col] = df[col].astype(int)
+
+    # Actividad fisica a numerico
+    if 'actividad_fisica' in df.columns:
+        df['actividad_fisica'] = df['actividad_fisica'].map(ACTIVIDAD_MAP).fillna(0).astype(int)
 
     # Normalizar/limpiar valores faltantes
     X = df[FEATURES].copy()
@@ -126,6 +133,13 @@ def predecir_paciente(paciente_id: int, modelo_id: int = None) -> dict:
     datos = {f: getattr(paciente, f, 0) or 0 for f in FEATURES}
     for col in ['fumador', 'consumo_alcohol', 'antecedentes_familiares']:
         datos[col] = int(datos[col])
+
+    # Actividad fisica a numerico
+    act = datos.get('actividad_fisica', 'sedentario')
+    if isinstance(act, str):
+        datos['actividad_fisica'] = ACTIVIDAD_MAP.get(act, 0)
+    else:
+        datos['actividad_fisica'] = int(act) if act else 0
 
     X_input = pd.DataFrame([datos])[FEATURES]
 
