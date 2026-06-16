@@ -212,6 +212,17 @@ def generar_dataset_view(request):
     try:
         n = request.data.get('registros', 1800)
         call_command('generar_dataset', f'--registros={n}')
+
+        # Ejecutar ETL automáticamente sobre el dataset generado
+        filepath = str(settings.DATASETS_DIR / 'dataset_clinico.xlsx')
+        if os.path.exists(filepath):
+            historial = ejecutar_etl(filepath, usuario=request.user)
+            data = HistorialETLSerializer(historial).data
+            return Response({
+                'mensaje': f'Dataset generado con {n} registros y ETL ejecutado',
+                'etl': data
+            }, status=status.HTTP_200_OK)
+
         return Response({'mensaje': f'Dataset generado con {n} registros'}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
