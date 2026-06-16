@@ -17,6 +17,7 @@ SEXOS = ['M', 'F']
 ACTIVIDADES = ['sedentario', 'baja', 'media', 'alta']
 RIESGOS = ['bajo', 'medio', 'alto', 'critico']
 
+
 def calcular_riesgo(edad, imc, presion_sis, presion_dis, glucosa, colesterol,
                      sat_ox, fumador, alcohol, ant_fam, act_fis, diagnostico):
     """Calcula riesgo basado en variables clínicas reales."""
@@ -71,42 +72,112 @@ def calcular_riesgo(edad, imc, presion_sis, presion_dis, glucosa, colesterol,
     return 'bajo'
 
 
+def _generar_perfil_riesgo(tipo_riesgo):
+    """Genera valores clínicos coherentes con un nivel de riesgo dado."""
+    if tipo_riesgo == 'critico':
+        return {
+            'edad': random.randint(60, 90),
+            'peso': round(random.uniform(85, 140), 1),
+            'altura': round(random.uniform(1.50, 1.85), 2),
+            'presion_sis': random.randint(160, 220),
+            'presion_dis': random.randint(100, 140),
+            'fc': random.randint(90, 130),
+            'glucosa': round(random.uniform(150, 350), 1),
+            'colesterol': round(random.uniform(250, 380), 1),
+            'sat_ox': round(random.uniform(82, 92), 1),
+            'temp': round(random.uniform(36.0, 38.5), 1),
+            'fumador': random.random() < 0.7,
+            'alcohol': random.random() < 0.5,
+            'ant_fam': random.random() < 0.7,
+            'act_fis': random.choices(ACTIVIDADES, weights=[50, 25, 15, 10])[0],
+            'diagnostico': random.choice(['insuficiencia renal', 'EPOC', 'cardiopatía', 'diabetes']),
+        }
+    elif tipo_riesgo == 'alto':
+        return {
+            'edad': random.randint(50, 75),
+            'peso': round(random.uniform(78, 120), 1),
+            'altura': round(random.uniform(1.52, 1.82), 2),
+            'presion_sis': random.randint(140, 175),
+            'presion_dis': random.randint(90, 115),
+            'fc': random.randint(80, 110),
+            'glucosa': round(random.uniform(120, 200), 1),
+            'colesterol': round(random.uniform(220, 300), 1),
+            'sat_ox': round(random.uniform(90, 95), 1),
+            'temp': round(random.uniform(36.2, 37.5), 1),
+            'fumador': random.random() < 0.5,
+            'alcohol': random.random() < 0.35,
+            'ant_fam': random.random() < 0.5,
+            'act_fis': random.choices(ACTIVIDADES, weights=[40, 30, 20, 10])[0],
+            'diagnostico': random.choice(['diabetes', 'hipertensión', 'cardiopatía', 'obesidad']),
+        }
+    elif tipo_riesgo == 'medio':
+        return {
+            'edad': random.randint(35, 60),
+            'peso': round(random.uniform(65, 95), 1),
+            'altura': round(random.uniform(1.55, 1.80), 2),
+            'presion_sis': random.randint(125, 145),
+            'presion_dis': random.randint(82, 95),
+            'fc': random.randint(70, 95),
+            'glucosa': round(random.uniform(100, 130), 1),
+            'colesterol': round(random.uniform(200, 250), 1),
+            'sat_ox': round(random.uniform(93, 97), 1),
+            'temp': round(random.uniform(36.3, 37.0), 1),
+            'fumador': random.random() < 0.3,
+            'alcohol': random.random() < 0.25,
+            'ant_fam': random.random() < 0.35,
+            'act_fis': random.choices(ACTIVIDADES, weights=[25, 35, 30, 10])[0],
+            'diagnostico': random.choice(['hipertensión', 'obesidad', 'hipotiroidismo', 'asma']),
+        }
+    else:  # bajo
+        return {
+            'edad': random.randint(18, 45),
+            'peso': round(random.uniform(55, 80), 1),
+            'altura': round(random.uniform(1.55, 1.85), 2),
+            'presion_sis': random.randint(100, 128),
+            'presion_dis': random.randint(65, 85),
+            'fc': random.randint(60, 82),
+            'glucosa': round(random.uniform(70, 105), 1),
+            'colesterol': round(random.uniform(150, 210), 1),
+            'sat_ox': round(random.uniform(95, 99), 1),
+            'temp': round(random.uniform(36.3, 37.0), 1),
+            'fumador': random.random() < 0.15,
+            'alcohol': random.random() < 0.15,
+            'ant_fam': random.random() < 0.25,
+            'act_fis': random.choices(ACTIVIDADES, weights=[10, 20, 35, 35])[0],
+            'diagnostico': random.choice(['paciente sano', 'asma', 'artritis', 'anemia']),
+        }
+
+
 def generar_dataset(n=1800):
     random.seed(42)
     np.random.seed(42)
     data = []
 
+    # Distribución realista de riesgos: 40% bajo, 30% medio, 20% alto, 10% critico
+    distribucion_riesgos = (
+        ['bajo'] * 40 + ['medio'] * 30 + ['alto'] * 20 + ['critico'] * 10
+    )
+
     for i in range(n):
         idx = 1 + i
         nombre = random.choice(['Carlos', 'Maria', 'Juan', 'Ana', 'Pedro', 'Laura', 'Luis', 'Sofia', 'Diego', 'Valentina'])
         apellido = random.choice(['Garcia', 'Rodriguez', 'Martinez', 'Lopez', 'Gonzalez', 'Perez', 'Sanchez', 'Ramirez'])
-        edad = int(np.random.normal(45, 15))
-        edad = max(1, min(120, edad))
         sexo = random.choice(SEXOS)
-        peso = round(np.random.normal(70, 15), 1)
-        altura = round(np.random.normal(1.65, 0.1), 2)
-        imc = round(peso / (altura ** 2), 1) if altura > 0 else 0
-        presion_sis = int(np.random.normal(120, 15))
-        presion_dis = int(np.random.normal(80, 10))
-        fc = int(np.random.normal(75, 12))
-        glucosa = round(np.random.normal(100, 20), 1)
-        colesterol = round(np.random.normal(190, 35), 1)
-        sat_ox = round(np.random.normal(96, 2), 1)
-        temp = round(np.random.normal(36.5, 0.5), 1)
-        ant_fam = random.choice([True, False])
-        fumador = random.choice([True, False])
-        alcohol = random.choice([True, False])
-        act_fis = random.choice(ACTIVIDADES)
-        diagnostico = random.choice(DIAGNOSTICOS)
-        riesgo = calcular_riesgo(edad, imc, presion_sis, presion_dis, glucosa,
-                                  colesterol, sat_ox, fumador, alcohol, ant_fam,
-                                  act_fis, diagnostico)
-        fecha = f'2025-{random.randint(1,12):02d}-{random.randint(1,28):02d}'
 
-        data.append([idx, nombre, apellido, edad, sexo, peso, altura, imc,
-                     presion_sis, presion_dis, fc, glucosa, colesterol,
-                     sat_ox, temp, ant_fam, fumador, alcohol, act_fis,
-                     diagnostico, riesgo, fecha])
+        # Seleccionar riesgo y generar perfil clínico coherente
+        riesgo = random.choice(distribucion_riesgos)
+        perfil = _generar_perfil_riesgo(riesgo)
+
+        peso = perfil['peso']
+        altura = perfil['altura']
+        imc = round(peso / (altura ** 2), 1) if altura > 0 else 0
+
+        data.append([idx, nombre, apellido, perfil['edad'], sexo, peso, altura, imc,
+                     perfil['presion_sis'], perfil['presion_dis'], perfil['fc'],
+                     perfil['glucosa'], perfil['colesterol'], perfil['sat_ox'],
+                     perfil['temp'], perfil['ant_fam'], perfil['fumador'],
+                     perfil['alcohol'], perfil['act_fis'], perfil['diagnostico'],
+                     riesgo, f'2025-{random.randint(1,12):02d}-{random.randint(1,28):02d}'])
 
     # --- Inyectar errores intencionales ---
     for _ in range(30):
