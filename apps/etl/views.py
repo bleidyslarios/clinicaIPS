@@ -73,10 +73,10 @@ class PacienteViewSet(viewsets.ReadOnlyModelViewSet):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
 def ejecutar_etl_view(request):
-    filepath = str(settings.BASE_DIR / 'datasets' / 'dataset_clinico.xlsx')
+    filepath = str(settings.DATASETS_DIR / 'dataset_clinico.xlsx')
     if not os.path.exists(filepath):
         # Intentar con .csv
-        filepath_csv = str(settings.BASE_DIR / 'datasets' / 'dataset_clinico.csv')
+        filepath_csv = str(settings.DATASETS_DIR / 'dataset_clinico.csv')
         if os.path.exists(filepath_csv):
             filepath = filepath_csv
         else:
