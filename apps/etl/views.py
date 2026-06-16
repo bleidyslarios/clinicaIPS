@@ -235,3 +235,51 @@ def generar_dataset_view(request):
         return Response({'mensaje': f'Dataset generado con {n} registros'}, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@extend_schema(
+    tags=['etl'],
+    summary='Reset completo de la aplicación',
+    description='Elimina todos los datos (pacientes, ETL, modelos ML, predicciones) y regenera todo desde cero.',
+    responses={200: {'type': 'object'}},
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, EsAnalistaOAdministrador])
+def reset_app_view(request):
+    try:
+        from apps.ml.models import ModeloML, PrediccionPaciente
+
+        # Eliminar en orden correcto (respetar foreign keys)
+        pred_count = PrediccionPaciente.objects.count()
+        PrediccionPaciente.objects.all().delete()
+
+        modelo_count = ModeloML.objects.count()
+        ModeloML.objects.all().delete()
+
+        historial_count = HistorialETL.objects.count()
+        HistorialETL.objects.all().delete()
+
+        paciente_count = Paciente.objects.count()
+        Paciente.objects.all().delete()
+
+        # Regenerar dataset y ejecutar ETL
+        n = request.data.get('registros', 1800)
+        call_command('generar_dataset', f'--registros={n}')
+
+        filepath = str(settings.DATASETS_DIR / 'dataset_clinico.xlsx')
+        historial = None
+        if os.path.exists(filepath):
+            historial = ejecutar_etl(filepath, usuario=request.user)
+
+        return Response({
+            'mensaje': 'Aplicación reiniciada completamente',
+            'eliminados': {
+                'predicciones': pred_count,
+                'modelos': modelo_count,
+                'historial_etl': historial_count,
+                'pacientes': paciente_count,
+            },
+            'etl': HistorialETLSerializer(historial).data if historial else None,
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
