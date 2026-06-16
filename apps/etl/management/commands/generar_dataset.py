@@ -23,7 +23,7 @@ def generar_dataset(n=1800):
     data = []
 
     for i in range(n):
-        idx = 1000 + i
+        idx = 1 + i
         nombre = random.choice(['Carlos', 'Maria', 'Juan', 'Ana', 'Pedro', 'Laura', 'Luis', 'Sofia', 'Diego', 'Valentina'])
         apellido = random.choice(['Garcia', 'Rodriguez', 'Martinez', 'Lopez', 'Gonzalez', 'Perez', 'Sanchez', 'Ramirez'])
         edad = int(np.random.normal(45, 15))
