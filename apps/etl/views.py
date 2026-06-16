@@ -75,15 +75,24 @@ class PacienteViewSet(viewsets.ReadOnlyModelViewSet):
 def ejecutar_etl_view(request):
     filepath = str(settings.DATASETS_DIR / 'dataset_clinico.xlsx')
     if not os.path.exists(filepath):
-        # Intentar con .csv
         filepath_csv = str(settings.DATASETS_DIR / 'dataset_clinico.csv')
         if os.path.exists(filepath_csv):
             filepath = filepath_csv
         else:
-            return Response(
-                {'error': 'Dataset no encontrado. Sube un archivo primero usando /api/etl/upload/'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            # En Vercel /tmp no persiste, regenerar dataset automáticamente
+            try:
+                call_command('generar_dataset', '--registros=1800')
+                filepath = str(settings.DATASETS_DIR / 'dataset_clinico.xlsx')
+                if not os.path.exists(filepath):
+                    return Response(
+                        {'error': 'No se pudo generar el dataset'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+            except Exception as e:
+                return Response(
+                    {'error': f'Error generando dataset: {str(e)}'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
     historial = ejecutar_etl(filepath, usuario=request.user)
     return Response(HistorialETLSerializer(historial).data)
 
