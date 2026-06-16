@@ -29,7 +29,7 @@ ALGORITMOS = {
 
 def _preparar_dataset():
     qs = Paciente.objects.exclude(riesgo_enfermedad__isnull=True)
-    df = pd.DataFrame(list(qs.values(*FEATURES, 'riesgo_enfermedad', 'id')))
+    df = pd.DataFrame(list(qs.values(*FEATURES, 'riesgo_enfermedad', 'id_paciente')))
     if df.empty or len(df) < 50:
         raise ValueError("Dataset insuficiente para entrenar (mínimo 50 registros)")
 
@@ -50,7 +50,7 @@ def _preparar_dataset():
     le = LabelEncoder()
     y_raw = df['riesgo_enfermedad'].astype(str).fillna('bajo')
     y = le.fit_transform(y_raw)
-    return X, y, le, df['id'].tolist()
+    return X, y, le, df['id_paciente'].tolist()
 
 
 def entrenar_modelo(algoritmo: str = 'random_forest') -> ModeloML:
