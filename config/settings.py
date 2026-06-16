@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ─── Seguridad ────────────────────────────────────────────────────────────────
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dev-key-change-in-production')
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = [
     '.vercel.app',
     'localhost',
@@ -88,6 +88,7 @@ else:
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
+
 
 # ─── Auth personalizado ────────────────────────────────────────────────────────
 AUTH_USER_MODEL = 'authentication.Usuario'
