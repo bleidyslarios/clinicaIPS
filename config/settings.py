@@ -160,7 +160,7 @@ STATICFILES_DIRS = [BASE_DIR / 'frontend' / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = Path('/tmp/media') if os.environ.get('VERCEL') else BASE_DIR / 'media'
 
 # ─── Datasets ────────────────────────────────────────────────────────────────
 DATASETS_DIR = Path('/tmp') if os.environ.get('VERCEL') else BASE_DIR / 'datasets'
