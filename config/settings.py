@@ -4,10 +4,15 @@ HealthAnalytics IPS - Configuración principal Django
 import os
 from pathlib import Path
 from datetime import timedelta
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(BASE_DIR / '.env')
+if load_dotenv:
+    load_dotenv(BASE_DIR / '.env')
 
 # ─── Seguridad ────────────────────────────────────────────────────────────────
 SECRET_KEY = os.environ.get(
