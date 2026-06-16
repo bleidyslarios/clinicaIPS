@@ -249,6 +249,9 @@ def reset_app_view(request):
     try:
         from apps.ml.models import ModeloML, PrediccionPaciente
 
+        # Ejecutar migraciones primero
+        call_command('migrate', '--run-syncdb', verbosity=0)
+
         # Eliminar en orden correcto (respetar foreign keys)
         pred_count = PrediccionPaciente.objects.count()
         PrediccionPaciente.objects.all().delete()
