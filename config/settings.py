@@ -4,8 +4,10 @@ HealthAnalytics IPS - Configuración principal Django
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
 # ─── Seguridad ────────────────────────────────────────────────────────────────
 SECRET_KEY = os.environ.get(
@@ -83,6 +85,9 @@ DATABASES = {
         'PASSWORD': os.environ.get('DB_PASSWORD'),
         'HOST': os.environ.get('DB_HOST'),
         'PORT': os.environ.get('DB_PORT', '5432'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
     }
 }
 
@@ -93,7 +98,7 @@ if not all([
     os.environ.get('DB_PASSWORD'),
     os.environ.get('DB_HOST'),
 ]):
-    print("⚠️ Variables de base de datos no configuradas")
+    print("WARNING: Variables de base de datos no configuradas")
 
 # ─── Auth personalizado ──────────────────────────────────────────────────────
 AUTH_USER_MODEL = 'authentication.Usuario'

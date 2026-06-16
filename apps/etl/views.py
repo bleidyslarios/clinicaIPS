@@ -1,4 +1,4 @@
-import os, csv
+import os, csv, logging
 from django.conf import settings
 from django.http import HttpResponse
 from django.core.management import call_command
@@ -14,6 +14,8 @@ from drf_spectacular.types import OpenApiTypes
 from .models import Paciente, HistorialETL
 from .serializers import PacienteSerializer, HistorialETLSerializer
 from .etl_engine import ejecutar_etl
+
+logger = logging.getLogger(__name__)
 
 
 class PacienteViewSet(viewsets.ReadOnlyModelViewSet):
@@ -124,7 +126,7 @@ def subir_dataset(request):
         return Response(data, status=status.HTTP_200_OK)
 
     except Exception as e:
-        # Intentar devolver detalle estructurado al frontend
+        logger.exception("Error en subir_dataset")
         detalle = str(e)
         error_tipo = e.__class__.__name__
         return Response(
