@@ -14,7 +14,7 @@ class Paciente(models.Model):
         ('sobrepeso', 'Sobrepeso'), ('obesidad', 'Obesidad')
     ]
 
-    id_paciente      = models.IntegerField(unique=True)
+    id_paciente      = models.IntegerField(primary_key=True)
     nombres          = models.CharField(max_length=100)
     apellidos        = models.CharField(max_length=100)
     edad             = models.IntegerField(null=True, blank=True)
