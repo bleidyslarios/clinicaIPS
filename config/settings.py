@@ -163,7 +163,7 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 # ─── Datasets ────────────────────────────────────────────────────────────────
-DATASETS_DIR = BASE_DIR / 'datasets'
+DATASETS_DIR = Path('/tmp') if os.environ.get('VERCEL') else BASE_DIR / 'datasets'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
